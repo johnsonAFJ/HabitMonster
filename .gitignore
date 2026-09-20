@@ -1,0 +1,6 @@
+.DS_Store
+# Local Claude Code preview config (has a machine-specific path)
+.claude/
+# Old art and Claude Design check images; the app doesn't load them
+assets/zOLD/
+assets/*_preview*.png

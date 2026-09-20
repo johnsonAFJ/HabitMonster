@@ -1,0 +1,166 @@
+:root {
+  --bg: #f4ecdb;
+  --card: #fffaf0;
+  --ink: #2b2220;
+  --muted: #7a6a5c;
+  --line: #d9cbb1;
+  --accent: #3f8f2f;
+  --accent-ink: #ffffff;
+  --warn: #b0562e;
+  --pixel: 'Pixelify Sans', ui-monospace, monospace;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.4 system-ui, -apple-system, sans-serif;
+}
+
+.app {
+  max-width: 768px;
+  margin: 0 auto;
+  /* Keep clear of the notch and home bar when installed on a phone. */
+  padding:
+    calc(24px + env(safe-area-inset-top))
+    calc(16px + env(safe-area-inset-right))
+    calc(40px + env(safe-area-inset-bottom))
+    calc(16px + env(safe-area-inset-left));
+}
+
+.top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+h1, h2 { font-family: var(--pixel); margin: 0; }
+h1 { font-size: 28px; }
+h2 { font-size: 18px; overflow-wrap: anywhere; }
+.today { margin: 0; color: var(--muted); }
+
+#scene {
+  display: block;
+  width: 100%;
+  height: auto;
+  image-rendering: pixelated;
+  border: 3px solid var(--ink);
+  border-radius: 4px;
+}
+
+/* One card under each planting spot. */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.card {
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: 6px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.card p { margin: 0; }
+.plant, .stats { color: var(--muted); font-size: 13px; }
+.health { font-family: var(--pixel); font-size: 14px; color: var(--accent); }
+.health-2 .health, .health-3 .health { color: #9a7a2a; }
+.health-4 .health { color: var(--warn); }
+
+/* Name and stats on the left, the optional full-grown preview in the top-right corner. */
+.card-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.preview {
+  flex: none;
+  image-rendering: pixelated;
+  background: #eef5ef;
+  border-radius: 4px;
+}
+
+.scene-tools { display: flex; justify-content: flex-end; margin-bottom: 6px; }
+
+.card.empty { border-style: dashed; justify-content: center; }
+.hint { color: var(--muted); text-align: center; }
+
+button, .file {
+  font: inherit;
+  font-family: var(--pixel);
+  font-size: 15px;
+  cursor: pointer;
+  border: 2px solid var(--ink);
+  border-radius: 4px;
+  padding: 6px 10px;
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+button:hover { filter: brightness(1.08); }
+
+button.ghost, .ghost {
+  background: transparent;
+  color: var(--ink);
+}
+button.small { padding: 2px 8px; font-size: 13px; }
+
+button.link {
+  border: 0;
+  padding: 6px 0; /* bigger tap target on phones */
+  background: none;
+  color: var(--muted);
+  font: 12px system-ui, sans-serif;
+  text-decoration: underline;
+}
+
+input, select {
+  font: inherit;
+  width: 100%;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 2px solid var(--line);
+  border-radius: 4px;
+  background: #fff;
+  color: var(--ink);
+}
+
+.card > button, .log, .done, .add { margin-top: 8px; }
+.log { display: flex; gap: 6px; }
+.log button { white-space: nowrap; }
+.add { display: flex; flex-direction: column; gap: 6px; }
+.done {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-family: var(--pixel);
+  color: var(--accent);
+}
+.manage { display: flex; gap: 12px; margin-top: auto; padding-top: 8px; }
+
+.bottom { margin-top: 24px; color: var(--muted); font-size: 13px; }
+.backup { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.file input { display: none; }
+.stale { color: var(--warn); }
+.art-note { margin: 10px 0 0; }
+
+@media (max-width: 600px) {
+  .cards { grid-template-columns: 1fr; }
+}

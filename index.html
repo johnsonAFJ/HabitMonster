@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Habit Monster</title>
+  <meta name="theme-color" content="#f4ecdb">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="assets/icons/icon-192.png">
+  <!-- Home screen install on iPhone -->
+  <link rel="apple-touch-icon" href="assets/icons/icon-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Monster">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <main class="app">
+    <header class="top">
+      <h1>Habit Monster</h1>
+      <p class="today" id="today"></p>
+    </header>
+
+    <div class="scene-tools">
+      <button type="button" class="ghost small" id="toggle-previews">Show full-grown plants</button>
+    </div>
+
+    <canvas id="scene" width="192" height="96" aria-label="Terrarium with your habit plants"></canvas>
+
+    <section class="cards" id="cards" aria-label="Habits"></section>
+
+    <footer class="bottom">
+      <div class="backup">
+        <button type="button" class="ghost" id="export">Export backup</button>
+        <label class="ghost file">
+          Import backup
+          <input type="file" id="import" accept="application/json,.json">
+        </label>
+        <span id="backup-age"></span>
+      </div>
+      <p class="art-note" id="art-note"></p>
+    </footer>
+  </main>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

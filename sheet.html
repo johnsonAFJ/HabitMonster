@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Sprite Sheet Preview</title>
+  <link rel="icon" href="data:,">
+  <style>
+    body { margin: 0; padding: 16px; background: #f4ecdb; color: #2b2220; font: 14px system-ui, sans-serif; }
+    canvas { image-rendering: pixelated; display: block; margin: 8px 0 20px; max-width: 100%; }
+    #sheet { background: repeating-conic-gradient(#e8dfcc 0 25%, #f7f1e4 0 50%) 0 0 / 16px 16px; }
+  </style>
+</head>
+<body>
+  <h1>Sprite sheet preview</h1>
+  <p id="source"></p>
+  <p>Rows: tulip, sunflower, echeveria, cactus. Columns: growth × 5 + health. Lines mark the cells.</p>
+  <canvas id="sheet"></canvas>
+  <p>Terrarium with each species at full bloom, then the cactus thriving, drooping and fully wilted.</p>
+  <canvas id="terrarium"></canvas>
+  <canvas id="terrarium-wilt"></canvas>
+  <script type="module">
+    import { loadArt, drawPlant, SPOTS_X } from './js/sprites.js';
+
+    const art = await loadArt();
+    const { cell } = art;
+    document.getElementById('source').textContent =
+      `Plants: ${art.custom.plants ? 'assets/plants.png' : 'placeholder'} (${cell} px cells) · ` +
+      `Terrarium: ${art.custom.terrarium ? 'assets/terrarium.png' : 'placeholder'} (192 × ${art.sceneH})`;
+
+    // Sheet at 2x with cell lines.
+    const sheetCanvas = document.getElementById('sheet');
+    sheetCanvas.width = art.plants.width * 2;
+    sheetCanvas.height = art.plants.height * 2;
+    sheetCanvas.style.width = `${sheetCanvas.width}px`;
+    const sheet = sheetCanvas.getContext('2d');
+    sheet.imageSmoothingEnabled = false;
+    sheet.drawImage(art.plants, 0, 0, sheetCanvas.width, sheetCanvas.height);
+    sheet.fillStyle = 'rgba(43, 34, 32, 0.25)';
+    for (let x = cell * 2; x < sheetCanvas.width; x += cell * 2) sheet.fillRect(x, 0, x % (cell * 10) === 0 ? 2 : 1, sheetCanvas.height);
+    for (let y = cell * 2; y < sheetCanvas.height; y += cell * 2) sheet.fillRect(0, y, sheetCanvas.width, 1);
+
+    function scene(id, plants) {
+      const canvas = document.getElementById(id);
+      canvas.width = 192;
+      canvas.height = art.sceneH;
+      canvas.style.width = '576px';
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(art.terrarium, 0, 0);
+      plants.forEach(([species, growth, health, x]) => drawPlant(ctx, art, species, growth, health, x));
+    }
+    scene('terrarium', SPOTS_X.map((x, i) => [i, 3, 0, x]));
+    scene('terrarium-wilt', [0, 2, 4].map((h, i) => [3, 3, h, SPOTS_X[i]]));
+  </script>
+</body>
+</html>
