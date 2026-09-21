@@ -286,6 +286,8 @@ input, select {
 .file input { display: none; }
 .stale { color: var(--warn); }
 .art-note { margin: 10px 0 0; color: var(--warn); }
+.links { margin: 12px 0 0; }
+.links a { color: var(--muted); }
 
 @media (max-width: 600px) {
   .cards, .picks { grid-template-columns: 1fr; }

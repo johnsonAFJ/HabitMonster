@@ -9,6 +9,8 @@
 
 import { readFileSync, existsSync } from 'node:fs';
 import { inflateSync } from 'node:zlib';
+import { FURNITURE } from '../js/monster.js';
+import { FURNITURE_ART, FURNITURE_SPOTS } from '../js/art.js';
 
 const STARTERS = ['embertail', 'voltectra', 'bubbletide'];
 const CELL = 64;
@@ -220,9 +222,36 @@ function checkIcon() {
   else pass('32x32 — run `npm run icons` to rebuild assets/icons/');
 }
 
+// Furniture art is optional, but FURNITURE_ART in js/art.js has to agree
+// with what is on disk: a PNG that is not listed is never loaded, and a
+// listed one that is missing or the wrong size falls back to the drawn one.
+function checkFurniture() {
+  console.log('\nassets/furniture/');
+  let drawn = 0;
+  for (const { id } of FURNITURE) {
+    const file = `assets/furniture/${id}.png`;
+    const listed = FURNITURE_ART.has(id);
+    const { w, h } = FURNITURE_SPOTS[id];
+    if (!existsSync(file)) {
+      if (listed) fail(`${id}: listed in FURNITURE_ART but ${file} is missing`);
+      else drawn++;
+      continue;
+    }
+    if (!listed) {
+      fail(`${id}: ${file} exists but is not in FURNITURE_ART, so the game never loads it`);
+      continue;
+    }
+    const img = readPng(readFileSync(file));
+    if (img.width !== w || img.height !== h) fail(`${id}: is ${img.width}x${img.height}, must be ${w}x${h}`);
+    else pass(`${id}: ${w}x${h}`);
+  }
+  if (drawn) note(`${drawn} of ${FURNITURE.length} pieces drawn in code, which is fine`);
+}
+
 console.log('Checking art against ART_BRIEF.md');
 STARTERS.forEach(checkSheet);
 checkRoom();
 checkIcon();
+checkFurniture();
 console.log(failures ? `\n${failures} problem${failures === 1 ? '' : 's'} found.` : '\nAll checks passed.');
 process.exit(failures ? 1 : 0);

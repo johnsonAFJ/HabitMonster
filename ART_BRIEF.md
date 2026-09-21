@@ -168,6 +168,42 @@ any edge.
 
 ---
 
+# DELIVERABLE 5: FURNITURE (optional, order any time)
+
+The room fills with furniture as the player levels up. The game already draws
+simple versions of every piece in code, so these are an upgrade, not a
+requirement, and can be ordered one at a time.
+
+One PNG per piece, in `assets/furniture/`, at **exactly** the size below.
+Transparent background, 1x scale, same palette, outline and top-left
+lighting as the room and creatures. The code places each one at a fixed spot,
+so the size matters and the position does not.
+
+| File | Size | Arrives at | What it is |
+| --- | --- | --- | --- |
+| `picture.png` | 28 x 26 | level 3 | A framed picture hanging on the wall, a small landscape inside |
+| `shelf.png` | 32 x 22 | level 6 | A wall shelf with a row of colorful books, one leaning |
+| `lamp.png` | 14 x 52 | level 9 | A tall floor lamp: shade on top, thin pole, weighted base |
+| `chest.png` | 32 x 22 | level 12 | A wooden toy chest with a lid and a brass latch |
+| `clock.png` | 20 x 20 | level 18 | A round wall clock |
+| `plant.png` | 22 x 32 | level 21 | A big leafy houseplant in a terracotta pot |
+| `trophy.png` | 14 x 16 | level 24 | A small gold trophy cup. It sits on top of the toy chest |
+
+Rules:
+
+1. Floor pieces (lamp, chest, plant) touch the **bottom row** of their image,
+   so they stand on the floor. Wall pieces (picture, shelf, clock) can use the
+   whole canvas.
+2. The trophy's bottom row sits on the chest's lid, so it should read as
+   resting on something rather than floating.
+3. Hard pixel edges only, no semi-transparent pixels.
+4. Keep them cozy and lived-in rather than fancy. This is a monster's first
+   home and it fills up slowly.
+
+After dropping a file in, add its id to `FURNITURE_ART` in `js/art.js`, then
+run `npm run check-art`. It fails if a PNG is there but not listed, since the
+game would never load it.
+
 # DELIVERABLE 4: LABELED PREVIEW (for checking only)
 
 A separate image of each sprite sheet scaled up 4x, with thin grid lines

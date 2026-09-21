@@ -24,8 +24,7 @@ export const EFFECTS = {
   levelUp: 'level_up.m4a',
   evolve1: 'evolve_form1_to_2.m4a',
   evolve2: 'evolve_form2_to_3.m4a',
-  // Unused for now. Earmarked for the furniture rewards at levels 3, 6, 9...
-  coin: 'coin.m4a',
+  coin: 'coin.m4a',      // a new piece of furniture arrives
 };
 
 export const MUSIC = {

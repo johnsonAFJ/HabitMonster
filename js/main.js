@@ -1,13 +1,13 @@
 import {
   MAX_HABITS, STARTERS, STARTER_LABELS, STATS, STAT_LABELS, MAX_HEALTH,
   FORM_LABELS, FORM_LEVELS,
-  dateKey, parseKey, monsterState, latestValue, currentStreak,
+  dateKey, parseKey, monsterState, latestValue, currentStreak, furnitureAt,
   emptySave, chooseStarter, addHabit, logToday, undoToday, renameHabit,
   deleteHabit, setStat, freeSlots,
 } from './monster.js';
 import { readSave, writeSave, saveBackup, readBackup } from './storage.js';
 import {
-  loadArt, drawMonster, drawEgg, drawCell, drawCheer,
+  loadArt, drawMonster, drawEgg, drawCell, drawCheer, drawFurniture,
   CELL, ROOM_W, ROOM_H, CHEER_MS, MOOD_NORMAL, MOOD_HAPPY, MOOD_WORN,
 } from './art.js';
 import { play, unlock, isMuted, setMuted, setMusic } from './sound.js';
@@ -37,6 +37,8 @@ function drawScene(now = performance.now()) {
   if (art?.room) ctx.drawImage(art.room, 0, 0);
 
   const state = monsterState(save, today);
+  // Furniture first, so the monster is always in front of it.
+  for (const item of furnitureAt(state.level)) drawFurniture(ctx, art, item.id);
   if (!state.hatched) {
     drawEgg(ctx);
   } else if (state.species) {
@@ -91,6 +93,7 @@ function commit(next, { cheer = false } = {}) {
   const after = monsterState(save, today);
 
   if (cheer) cheerStart = performance.now();
+  const gained = furnitureAt(after.level).filter((item) => item.level > before.level);
   // The biggest thing that happened wins, so a hatch or an evolution is not
   // drowned out by the ordinary logging sound.
   if (!before.hatched && after.hatched) {
@@ -100,6 +103,11 @@ function commit(next, { cheer = false } = {}) {
   } else if (after.form > before.form) {
     announce(`${STARTER_LABELS[after.species]} evolved into its ${FORM_LABELS[after.form].toLowerCase()} form!`);
     play(after.form === 2 ? 'evolve2' : 'evolve1');
+  } else if (gained.length) {
+    announce(`Level ${after.level}! ${gained.map((item) => item.label).join(' and ')}.`);
+    play('levelUp');
+    // The coin lands after the level-up sound, as the reward for it.
+    setTimeout(() => play('coin'), 650);
   } else if (after.level > before.level) {
     announce(`Level ${after.level}!`);
     play('levelUp');

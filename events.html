@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Level Events</title>
+  <meta name="theme-color" content="#f4ecdb">
+  <link rel="icon" href="assets/icons/icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f4ecdb;
+      --card: #fffaf0;
+      --ink: #2b2220;
+      --muted: #7a6a5c;
+      --line: #d9cbb1;
+      --accent: #3f8f2f;
+      --warn: #b0562e;
+      --pixel: 'Pixelify Sans', ui-monospace, monospace;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font: 15px/1.45 system-ui, -apple-system, sans-serif;
+    }
+    .page {
+      max-width: 760px;
+      margin: 0 auto;
+      padding:
+        calc(24px + env(safe-area-inset-top))
+        calc(16px + env(safe-area-inset-right))
+        calc(40px + env(safe-area-inset-bottom))
+        calc(16px + env(safe-area-inset-left));
+    }
+    h1, h2 { font-family: var(--pixel); margin: 0; }
+    h1 { font-size: 26px; }
+    h2 { font-size: 18px; margin-top: 28px; }
+    .back { display: inline-block; margin-bottom: 14px; color: var(--muted); }
+    .lede { color: var(--muted); margin: 6px 0 18px; }
+
+    .now {
+      background: var(--card);
+      border: 2px solid var(--line);
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin-bottom: 18px;
+    }
+    .now p { margin: 0; }
+    .now .big { font-family: var(--pixel); font-size: 18px; }
+    .now .next { color: var(--muted); margin-top: 4px; }
+
+    .events { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+    .event {
+      display: grid;
+      grid-template-columns: 52px 56px 1fr auto;
+      align-items: center;
+      gap: 12px;
+      background: var(--card);
+      border: 2px solid var(--line);
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+    .event.done { border-color: #b9d3a8; }
+    .event.next { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+    .level {
+      font-family: var(--pixel);
+      font-size: 15px;
+      text-align: center;
+      line-height: 1.1;
+    }
+    .level b { display: block; font-size: 22px; }
+    .preview {
+      width: 56px;
+      height: 56px;
+      border-radius: 6px;
+      background: #ece2cd;
+      display: grid;
+      place-items: center;
+      font-family: var(--pixel);
+      font-size: 22px;
+      color: var(--muted);
+    }
+    .preview canvas { image-rendering: pixelated; max-width: 48px; max-height: 48px; }
+    .what { min-width: 0; }
+    .what .label { margin: 0; font-weight: 600; }
+    .what .when { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+    .status {
+      font-family: var(--pixel);
+      font-size: 14px;
+      white-space: nowrap;
+      color: var(--muted);
+    }
+    .done .status { color: var(--accent); }
+    .next .status { color: var(--accent); }
+
+    .notes { color: var(--muted); font-size: 14px; }
+    .notes li { margin-bottom: 6px; }
+    .notes b { color: var(--ink); }
+    .planned { list-style: none; padding: 0; margin: 8px 0 0; }
+    .planned li {
+      padding: 8px 12px;
+      border: 2px dashed var(--line);
+      border-radius: 8px;
+      margin-bottom: 6px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    @media (max-width: 560px) {
+      .event { grid-template-columns: 44px 1fr auto; gap: 10px; }
+      .preview { display: none; }
+      .level b { font-size: 19px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <a class="back" href="./">← Back to the monster</a>
+    <h1>What happens at each level</h1>
+    <p class="lede">Built from the same table the game runs on, so it can't
+      promise anything the game won't do.</p>
+
+    <section class="now" id="now" hidden></section>
+
+    <ol class="events" id="events"></ol>
+
+    <h2>If something didn't happen</h2>
+    <ul class="notes">
+      <li>An event happens the moment its level is reached. If the level on
+        screen is <b>at or past</b> an event's level and it isn't there,
+        that's a bug.</li>
+      <li><b>Undoing a log</b> takes its experience back, so it can drop a
+        level and take that level's event with it. Log it again and it
+        returns.</li>
+      <li><b>Missing a day</b> never costs experience, only health. It just
+        means the next event comes later.</li>
+      <li><b>Earliest</b> means every habit logged every day, with 2 or more
+        habits so the breadth bonus counts. <b>Typical</b> assumes about
+        28 XP a day.</li>
+      <li>This page reads the save on the device it's opened on. On a phone,
+        open it from the link inside the Home Screen app, not from Safari,
+        or it won't see his monster.</li>
+    </ul>
+
+    <h2>Planned, not built yet</h2>
+    <p class="notes">None of these happen yet, at any level.</p>
+    <ul class="planned">
+      <li><b>The backpack</b> — swapping between all three monsters, once one is full grown.</li>
+      <li><b>Held items</b> — a hat or scarf worn on the monster itself.</li>
+      <li><b>A hatch sound</b> — hatching currently borrows the first evolution fanfare.</li>
+    </ul>
+  </main>
+
+  <script type="module">
+    import { eventSchedule, monsterState, STARTER_LABELS, dateKey } from './js/monster.js';
+    import { loadArt, drawFurniturePiece, FURNITURE_SPOTS } from './js/art.js';
+    import { readSave } from './js/storage.js';
+
+    const today = dateKey(new Date());
+    const save = readSave();
+    const state = monsterState(save, today);
+    const schedule = eventSchedule();
+    const art = await loadArt();
+
+    const reached = (event) => (event.kind === 'hatch' ? state.hatched : state.level >= event.level);
+    const next = state.species ? schedule.find((event) => !reached(event)) : null;
+
+    // Where he is right now, if there is a monster on this device.
+    if (state.species) {
+      const now = document.getElementById('now');
+      const name = STARTER_LABELS[state.species];
+      const lines = [
+        `<p class="big">${state.hatched ? `${name} is level ${state.level}` : `${name} is still an egg`}</p>`,
+        `<p class="next">${state.xp} XP so far.</p>`,
+      ];
+      if (next) {
+        const toGo = Math.max(0, next.xp - state.xp);
+        lines[1] = `<p class="next">${state.xp} XP so far. Next up at level ${next.level}: ${next.label.toLowerCase()} — ${toGo} XP to go.</p>`;
+      } else {
+        lines[1] = `<p class="next">${state.xp} XP so far. Every event has happened.</p>`;
+      }
+      now.innerHTML = lines.join('');
+      now.hidden = false;
+    }
+
+    const ICONS = { hatch: '🥚', evolve: '★', stats: '#', bonus: '+' };
+
+    function preview(event) {
+      const box = document.createElement('div');
+      box.className = 'preview';
+      if (event.kind === 'furniture') {
+        const spot = FURNITURE_SPOTS[event.id];
+        const canvas = document.createElement('canvas');
+        canvas.width = spot.w;
+        canvas.height = spot.h;
+        const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = false;
+        drawFurniturePiece(ctx, art, event.id);
+        // Whole-number scaling, so the pixels stay square.
+        const scale = Math.max(1, Math.floor(48 / Math.max(spot.w, spot.h)));
+        canvas.style.width = `${spot.w * scale}px`;
+        canvas.style.height = `${spot.h * scale}px`;
+        canvas.setAttribute('role', 'img');
+        canvas.setAttribute('aria-label', event.label);
+        box.append(canvas);
+      } else {
+        // Evolutions are text only: drawing the forms would spoil them.
+        box.textContent = ICONS[event.kind] ?? '·';
+        box.setAttribute('aria-hidden', 'true');
+      }
+      return box;
+    }
+
+    const list = document.getElementById('events');
+    for (const event of schedule) {
+      const done = state.species && reached(event);
+      const isNext = event === next;
+      const item = document.createElement('li');
+      item.className = `event${done ? ' done' : ''}${isNext ? ' next' : ''}`;
+
+      const level = document.createElement('div');
+      level.className = 'level';
+      level.innerHTML = `Lv<b>${event.level}</b>`;
+
+      const what = document.createElement('div');
+      what.className = 'what';
+      const label = document.createElement('p');
+      label.className = 'label';
+      label.textContent = event.label;
+      const when = document.createElement('p');
+      when.className = 'when';
+      when.textContent = event.kind === 'hatch'
+        ? 'Day 1'
+        : `${event.xp} XP total · earliest day ${event.earliestDay} · typically day ${event.typicalDay}`;
+      what.append(label, when);
+
+      const status = document.createElement('div');
+      status.className = 'status';
+      status.textContent = done ? 'Done ✓' : isNext ? 'Next' : '';
+
+      item.append(level, preview(event), what, status);
+      list.append(item);
+    }
+  </script>
+</body>
+</html>

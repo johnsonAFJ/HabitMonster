@@ -44,9 +44,18 @@ export const BREADTH_BONUS = 5;
 export const BREADTH_MIN_LEVEL = 5;
 export const MAX_DAY_XP = 40;
 
-// Furniture arrives every third level from 3, except where an evolution lands.
-export const ITEM_EVERY = 3;
-export const ITEM_FROM = 3;
+// Furniture for the room, one piece at each of these levels. An explicit list
+// rather than a rule, so nothing can claim a level grants an item that does
+// not exist. Every third level from 3, skipping 15 where the evolution lands.
+export const FURNITURE = [
+  { level: 3, id: 'picture', label: 'A picture for the wall' },
+  { level: 6, id: 'shelf', label: 'A shelf of books' },
+  { level: 9, id: 'lamp', label: 'A floor lamp' },
+  { level: 12, id: 'chest', label: 'A toy chest' },
+  { level: 18, id: 'clock', label: 'A wall clock' },
+  { level: 21, id: 'plant', label: 'A big leafy plant' },
+  { level: 24, id: 'trophy', label: 'A trophy, on the toy chest' },
+];
 
 // ---- Dates (local time, keyed as YYYY-MM-DD) ----
 
@@ -100,11 +109,58 @@ export function formForLevel(level) {
   return form;
 }
 
-// True when reaching this level hands over a piece of furniture. Evolution
-// levels give a new form instead, so they never double up.
+// True when reaching this level hands over a piece of furniture.
 export function grantsItem(level) {
-  if (FORM_LEVELS.includes(level)) return false;
-  return level >= ITEM_FROM && (level - ITEM_FROM) % ITEM_EVERY === 0;
+  return FURNITURE.some((item) => item.level === level);
+}
+
+// The furniture in the room at a given level, in the order it arrived.
+export function furnitureAt(level) {
+  return FURNITURE.filter((item) => item.level <= level);
+}
+
+// Every milestone, built from the same constants the game runs on, so the
+// events chart cannot describe something the game does not do.
+export function levelEvents() {
+  const events = [
+    { level: 1, kind: 'hatch', label: 'The egg hatches, on the first habit logged' },
+    { level: FORM_LEVELS[1], kind: 'evolve', label: `Evolves into its ${FORM_LABELS[1].toLowerCase()} form` },
+    { level: FORM_LEVELS[1], kind: 'stats', label: 'Stats appear, and each habit is asked what it trains' },
+    { level: BREADTH_MIN_LEVEL, kind: 'bonus', label: 'Breadth bonus: +5 XP a day for logging 2 or more habits' },
+    { level: FORM_LEVELS[2], kind: 'evolve', label: `Evolves into its ${FORM_LABELS[2].toLowerCase()} form` },
+    ...FURNITURE.map((item) => ({ level: item.level, kind: 'furniture', id: item.id, label: item.label })),
+  ];
+  const order = { hatch: 0, evolve: 1, stats: 2, bonus: 3, furniture: 4 };
+  return events.sort((a, b) => a.level - b.level || order[a.kind] - order[b.kind]);
+}
+
+// A typical day for planning, below the 35 to 40 of a perfect one.
+export const TYPICAL_DAY_XP = 28;
+
+// Every event with when it can be expected. `earliestDay` is found by actually
+// playing: every habit logged every day, through this same engine, so it can
+// never disagree with the game. `typicalDay` assumes TYPICAL_DAY_XP.
+export function eventSchedule() {
+  const events = levelEvents();
+  const top = Math.max(...events.map((e) => e.level));
+  const start = '2026-01-01';
+  let save = chooseStarter(emptySave(), STARTERS[0], start, () => 0.5);
+  for (let i = 0; i < MAX_HABITS; i++) {
+    save = addHabit(save, { name: `Habit ${i}`, type: 'check' }, start, () => (i + 1) / 10);
+  }
+  const earliest = { 1: 1 };
+  for (let day = 1; !(top in earliest) && day <= 1000; day++) {
+    const key = addDays(start, day - 1);
+    for (const habit of save.habits) save = logToday(save, habit.id, key);
+    const { level } = monsterState(save, key);
+    for (let l = 2; l <= level; l++) if (!(l in earliest)) earliest[l] = day;
+  }
+  return events.map((event) => ({
+    ...event,
+    xp: xpForLevel(event.level),
+    earliestDay: earliest[event.level],
+    typicalDay: event.level === 1 ? 1 : Math.ceil(xpForLevel(event.level) / TYPICAL_DAY_XP),
+  }));
 }
 
 // ---- Replaying the history ----

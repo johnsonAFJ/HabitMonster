@@ -15,11 +15,12 @@
 //
 // Bump CACHE whenever the file list below changes.
 
-const CACHE = 'monster-v5';
+const CACHE = 'monster-v6';
 
 const APP_FILES = [
   './',
   './index.html',
+  './events.html',
   './manifest.webmanifest',
   './css/style.css',
   './js/main.js',
