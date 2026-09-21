@@ -122,6 +122,32 @@ fills with earned furniture **every third level starting at level 3**. Level
 3, 6, 9, 12, 18, 21 and 24. That is 7 by level 25 — enough that the room
 visibly transforms, few enough that each one is an event.
 
+## Sound
+
+Sound effects live in `assets/audio/`, named in `EFFECTS` in `js/sound.js`:
+
+| File | Plays when |
+| --- | --- |
+| `log.mp3` | a habit is logged |
+| `hatch.mp3` | the egg opens |
+| `level-up.mp3` | a level is reached |
+| `evolve.mp3` | a form changes, at level 5 and 15 |
+| `theme.mp3` | optional background music, looped |
+
+Only the biggest thing that happened plays, so a hatch or an evolution is
+never drowned out by the ordinary logging sound.
+
+**A missing file is silence.** Nothing throws and nothing is logged, so the
+app works before the audio lands and if a download ever fails. The service
+worker adds each file separately for the same reason: `cache.addAll` rejects
+the whole install if any one file 404s, which would cost the app its offline
+support over a missing sound.
+
+One **Sound: on / off** button in the header mutes effects and music together.
+The choice is saved per browser under `habit-monster-muted` and is not part of
+a backup. Phones refuse to play audio before the person has interacted with
+the page, so the first tap anywhere is what starts it.
+
 ## The screen
 
 Room on top, one status strip beneath it, habit cards below that.
@@ -292,6 +318,7 @@ color:
 | `js/monster.js` | All rules: dates, XP, levels, health, forms, stats, habit changes. No DOM, so Node can test it. |
 | `js/storage.js` | localStorage save and load, JSON export and import |
 | `js/art.js` | Loads the sheets and room, draws the monster, the egg and the cheer sparkles |
+| `js/sound.js` | Sound effects, optional music, and the mute setting |
 | `js/main.js` | Page wiring: the picker, the room, the status strip, habit cards, midnight rollover |
 | `manifest.webmanifest` | App name, icons and colors for installing on a phone |
 | `sw.js` | Offline support for the published site |

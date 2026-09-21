@@ -44,6 +44,12 @@ h1 { font-size: 28px; }
 h2 { font-size: 18px; overflow-wrap: anywhere; }
 h3 { font-size: 17px; }
 .today { margin: 0; color: var(--muted); }
+.top-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
 
 /* ---- The room ---- */
 

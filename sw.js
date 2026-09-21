@@ -15,7 +15,7 @@
 //
 // Bump CACHE whenever the file list below changes.
 
-const CACHE = 'monster-v3';
+const CACHE = 'monster-v4';
 
 const APP_FILES = [
   './',
@@ -26,12 +26,22 @@ const APP_FILES = [
   './js/monster.js',
   './js/storage.js',
   './js/art.js',
+  './js/sound.js',
   './assets/room.png',
   './assets/embertail.png',
   './assets/voltectra.png',
   './assets/bubbletide.png',
   './assets/icons/icon-180.png',
   './assets/icons/icon-192.png',
+];
+
+// Cached if they exist. Audio is optional: the app is silent without it.
+const EXTRA_FILES = [
+  './assets/audio/log.mp3',
+  './assets/audio/hatch.mp3',
+  './assets/audio/level-up.mp3',
+  './assets/audio/evolve.mp3',
+  './assets/audio/theme.mp3',
 ];
 
 // Google Fonts (the pixel font) is cached the first time it loads.
@@ -44,7 +54,11 @@ function isAppShell(request) {
 }
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(APP_FILES)));
+  // Each file is added on its own. cache.addAll rejects the whole install if
+  // any single file 404s, which would leave the app with no offline support
+  // at all because one optional sound was missing.
+  event.waitUntil(caches.open(CACHE).then((cache) =>
+    Promise.all([...APP_FILES, ...EXTRA_FILES].map((file) => cache.add(file).catch(() => null)))));
   self.skipWaiting();
 });
 

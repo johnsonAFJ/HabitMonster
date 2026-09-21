@@ -10,6 +10,7 @@ import {
   loadArt, drawMonster, drawEgg, drawCell, drawCheer,
   CELL, ROOM_W, ROOM_H, CHEER_MS, MOOD_NORMAL, MOOD_HAPPY, MOOD_WORN,
 } from './art.js';
+import { play, unlock, isMuted, setMuted } from './sound.js';
 
 const ELEMENTS = { embertail: 'Fire', voltectra: 'Electric', bubbletide: 'Water' };
 const BLURBS = {
@@ -90,12 +91,19 @@ function commit(next, { cheer = false } = {}) {
   const after = monsterState(save, today);
 
   if (cheer) cheerStart = performance.now();
+  // The biggest thing that happened wins, so a hatch or an evolution is not
+  // drowned out by the ordinary logging sound.
   if (!before.hatched && after.hatched) {
     announce(`${STARTER_LABELS[after.species]} hatched!`);
+    play('hatch');
   } else if (after.form > before.form) {
     announce(`${STARTER_LABELS[after.species]} evolved into its ${FORM_LABELS[after.form].toLowerCase()} form!`);
+    play('evolve');
   } else if (after.level > before.level) {
     announce(`Level ${after.level}!`);
+    play('levelUp');
+  } else if (cheer) {
+    play('log');
   }
   render();
 }
@@ -333,6 +341,22 @@ function render() {
   renderFooter();
 }
 
+function renderMute() {
+  const button = document.getElementById('mute');
+  button.textContent = isMuted() ? 'Sound: off' : 'Sound: on';
+  button.setAttribute('aria-pressed', String(isMuted()));
+}
+
+document.getElementById('mute').onclick = () => {
+  setMuted(!isMuted());
+  renderMute();
+};
+
+// Phones refuse to play audio until the person has interacted with the page,
+// so the first tap anywhere is what actually starts it.
+document.addEventListener('pointerdown', unlock, { once: true });
+document.addEventListener('keydown', unlock, { once: true });
+
 document.getElementById('change-starter').onclick = () => {
   picking = true;
   render();
@@ -382,6 +406,7 @@ if ('serviceWorker' in navigator && location.hostname !== 'localhost') {
   navigator.serviceWorker.register('./sw.js');
 }
 
+renderMute();
 render();
 loadArt().then((loaded) => {
   art = loaded;
