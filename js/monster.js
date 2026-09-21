@@ -1,9 +1,13 @@
 // Pure monster rules: dates, experience, levels, health, forms, stats and
 // habit changes. No DOM or storage access here, so Node can test it.
 //
-// Everything except `levelFloor` is derived by replaying `logs`, the same way
-// the garden derives plant health and growth. Nothing accumulated is stored,
-// so the numbers can never drift from the history.
+// Everything is derived by replaying `logs`, the same way the garden derived
+// plant health and growth. Nothing accumulated is stored, so the numbers can
+// never drift from the history.
+//
+// That means undoing a log takes its experience back, which is the point: an
+// undo retracts a claim that the habit was done. Missing a day is different
+// and costs nothing, because a day never logged never earned anything.
 
 export const MAX_HABITS = 3;
 export const SAVE_VERSION = 2;
@@ -168,12 +172,7 @@ export function hasHatched(save) {
 // Everything the screen needs in one object.
 export function monsterState(save, today) {
   const monster = activeMonster(save);
-  const { xp: earned, health } = replay(save, today);
-  // levelFloor is the one stored derived value, so retuning the curve later
-  // can only ever be good news. It raises the EXPERIENCE, not just the level:
-  // flooring only the level lets the bar measure one level while the label
-  // shows another, so filling the bar appears to do nothing.
-  const xp = Math.max(earned, xpForLevel(monster?.levelFloor ?? 1));
+  const { xp, health } = replay(save, today);
   const level = levelFromXp(xp);
   return {
     species: monster?.species ?? null,
@@ -186,18 +185,6 @@ export function monsterState(save, today) {
     health,
     wornOut: health === 0,
     stats: statTotals(save),
-  };
-}
-
-// Raises the stored floor to the level reached. Call before saving.
-export function withLevelFloor(save, today) {
-  const monster = activeMonster(save);
-  if (!monster) return save;
-  const { level } = monsterState(save, today);
-  if (level <= monster.levelFloor) return save;
-  return {
-    ...save,
-    monsters: save.monsters.map((m) => (m.id === monster.id ? { ...m, levelFloor: level } : m)),
   };
 }
 
@@ -220,7 +207,7 @@ function newId(prefix, random) {
 
 export function chooseStarter(save, species, today, random = Math.random) {
   if (!STARTERS.includes(species)) throw new Error(`"${species}" is not one of the starters.`);
-  const monster = { id: newId('m', random), species, chosenOn: today, levelFloor: 1 };
+  const monster = { id: newId('m', random), species, chosenOn: today };
   return { ...save, monsters: [...save.monsters, monster], activeMonster: monster.id };
 }
 
@@ -330,9 +317,9 @@ export function validateSave(data) {
     const ok =
       typeof m.id === 'string' &&
       STARTERS.includes(m.species) &&
-      DATE_KEY.test(m.chosenOn) &&
-      Number.isInteger(m.levelFloor) &&
-      m.levelFloor >= 1;
+      DATE_KEY.test(m.chosenOn);
+    // Saves from before experience became purely derived carry a levelFloor.
+    // It is ignored rather than rejected, so an older backup still loads.
     if (!ok) throw new Error('A monster in the backup is malformed.');
   }
 

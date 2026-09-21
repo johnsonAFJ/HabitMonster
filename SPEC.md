@@ -72,18 +72,25 @@ figure rather than something reachable from day one.
 Tuned for a 7-year-old: the first evolution has to arrive before he loses
 interest, and the second has to be a real commitment without being a season.
 
-### Levels are never taken away
+### What can and cannot cost experience
 
-Two protections, because the spec promises it and both edge cases are real:
+Experience is whatever the logs say, so the question is only what changes the
+logs.
 
-- **Deleting a habit** moves it to a `retired` list instead of dropping its
-  logs. XP replay reads live and retired habits together, so deleting never
-  lowers the level and never rewrites a past breadth bonus.
-- **`levelFloor`** is stored on the monster: the highest level ever reached.
-  Retuning the curve later can only ever be good news. It raises the
-  **experience**, not just the level: flooring only the level lets the bar
-  measure one level while the label shows another, so undoing a log leaves a
-  bar that resets without the level ever going up.
+- **Missing a day costs nothing.** A day that was never logged never earned
+  anything, so there is nothing to take back. Health is what a lapse costs.
+- **Undoing a log takes its experience back**, and the level follows it down.
+  An undo retracts the claim that the habit was done, so the experience should
+  go with it. This is the one way a level can drop, and it is the person's own
+  deliberate action.
+- **Deleting a habit keeps everything.** It moves to a `retired` list instead
+  of dropping its logs, so deleting never lowers the level and never rewrites
+  a past breadth bonus.
+
+Nothing is stored to enforce any of this. An earlier version floored the level
+at the highest ever reached, which made undo do nothing and, worse, let the XP
+bar measure one level while the label showed another: filling the bar reset it
+without the level going up.
 
 ## Health
 
@@ -210,8 +217,7 @@ Stored under the localStorage key `habit-monster`:
     {
       "id": "m1a2b3c4",
       "species": "embertail",
-      "chosenOn": "2026-09-20",
-      "levelFloor": 1
+      "chosenOn": "2026-09-20"
     }
   ],
   "activeMonster": "m1a2b3c4",
@@ -239,7 +245,9 @@ Stored under the localStorage key `habit-monster`:
   XP, level, health and stats are all derived from `logs`. None are stored.
 - `retired` holds deleted habits, keeping `id`, `name`, `stat`, `createdOn`
   and `logs` so XP replay stays correct.
-- `levelFloor` is the one intentionally stored derived value.
+- Nothing derived is stored. Saves written by an earlier version carry a
+  `levelFloor` on the monster; it is ignored rather than rejected, so an older
+  backup still loads.
 
 Backups export this object. Import validates it first. A v1 garden backup is
 rejected with a clear message rather than silently half-loading.

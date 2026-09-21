@@ -1,7 +1,7 @@
 import {
   MAX_HABITS, STARTERS, STARTER_LABELS, STATS, STAT_LABELS, MAX_HEALTH,
   FORM_LABELS, FORM_LEVELS,
-  dateKey, parseKey, monsterState, withLevelFloor, latestValue, currentStreak,
+  dateKey, parseKey, monsterState, latestValue, currentStreak,
   emptySave, chooseStarter, addHabit, logToday, undoToday, renameHabit,
   deleteHabit, setStat, freeSlots,
 } from './monster.js';
@@ -86,7 +86,7 @@ function formatValue(habit, value) {
 // the level floor is kept up to date and level-ups are announced once.
 function commit(next, { cheer = false } = {}) {
   const before = monsterState(save, today);
-  save = withLevelFloor(next, today);
+  save = next;
   writeSave(save);
   const after = monsterState(save, today);
 

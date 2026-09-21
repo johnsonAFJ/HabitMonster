@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   LEVEL_BASE, MAX_HEALTH, STARTERS,
   levelCost, xpForLevel, levelFromXp, formForLevel, grantsItem,
-  addDays, replay, monsterState, statTotals, withLevelFloor,
+  addDays, replay, monsterState, statTotals,
   emptySave, chooseStarter, addHabit, logToday, undoToday, deleteHabit,
   setStat, currentStreak, hasHatched, validateSave,
 } from '../js/monster.js';
@@ -152,55 +152,52 @@ test('a retired habit keeps its stat contribution', () => {
   assert.equal(statTotals(retired).wisdom, 4);
 });
 
-test('levelFloor holds the level up if the curve is ever retuned', () => {
-  let save = logDays(saveWith(1), 1);
-  save = withLevelFloor(save, day(1));
-  assert.equal(save.monsters[0].levelFloor, 2, '35 XP is exactly level 2');
-
-  // Pretend a retune made the same history worth less.
-  const floored = { ...save, monsters: [{ ...save.monsters[0], levelFloor: 9 }] };
-  assert.equal(monsterState(floored, day(1)).level, 9);
-  assert.equal(monsterState(floored, day(1)).form, 1, 'the form follows the floored level');
+test('an older save carrying levelFloor still loads', () => {
+  // Experience used to be floored by a stored level. Backups written then
+  // still have the field; it is ignored rather than rejected.
+  const save = logDays(saveWith(1), 1);
+  const old = JSON.parse(JSON.stringify(save));
+  old.monsters[0].levelFloor = 9;
+  const back = validateSave(old);
+  assert.equal(monsterState(back, day(1)).level, 2, 'the level comes from the logs alone');
 });
 
-test('the bar always measures the level that is on screen', () => {
-  // Undoing a log drops experience below the floor. Flooring only the level
-  // left the bar measuring the level below the one shown, so filling it
-  // appeared to do nothing: it reset without the level going up.
+test('undoing a log takes its experience back', () => {
+  // An undo retracts the claim that the habit was done, so the experience
+  // goes with it. Missing a day is different: it never earned anything.
   let save = saveWith(3);
   save.habits.forEach((h) => { save = logToday(save, h.id, DAY1); });
-  save = withLevelFloor(save, DAY1);
   const full = monsterState(save, DAY1);
-  assert.equal(full.level, 2, '30 base plus the health bonus is exactly level 2');
-  assert.equal(full.levelNeeds, levelCost(2));
+  assert.equal(full.xp, 35, '30 base plus the health bonus');
+  assert.equal(full.level, 2);
 
   save = undoToday(save, save.habits[0].id, DAY1);
   save = undoToday(save, save.habits[1].id, DAY1);
   const after = monsterState(save, DAY1);
-  assert.equal(after.level, full.level, 'the floor holds the level');
-  assert.equal(after.levelNeeds, levelCost(after.level), 'and the bar measures that same level');
-  assert.equal(after.xp - after.intoLevel, xpForLevel(after.level));
+  assert.equal(after.xp, 15, 'one of three logged is 10 base plus the bonus');
+  assert.equal(after.level, 1, 'the level follows the experience back down');
+});
+
+test('missing days never cost experience', () => {
+  const save = logDays(saveWith(1), 3);
+  const earned = monsterState(save, day(3)).xp;
+  // Six untouched days later: health has drained, but experience has not.
+  const later = monsterState(save, day(9));
+  assert.equal(later.xp, earned);
+  assert.equal(later.health, 0, 'health is what a lapse costs');
 });
 
 test('level, bar and experience agree in every state', () => {
   let save = saveWith(2);
   for (let d = 1; d <= 20; d++) {
-    // Log, sometimes undo, and check the invariant after every change.
     save.habits.forEach((h) => { save = logToday(save, h.id, day(d)); });
     if (d % 3 === 0) save = undoToday(save, save.habits[0].id, day(d));
-    save = withLevelFloor(save, day(d));
     const s = monsterState(save, day(d));
     assert.equal(s.level, levelFromXp(s.xp), `day ${d}: level matches experience`);
     assert.equal(s.intoLevel, s.xp - xpForLevel(s.level), `day ${d}: bar position`);
     assert.equal(s.levelNeeds, levelCost(s.level), `day ${d}: bar length`);
     assert.ok(s.intoLevel < s.levelNeeds, `day ${d}: bar is never past full`);
   }
-});
-
-test('withLevelFloor never lowers the floor', () => {
-  let save = logDays(saveWith(1), 10);
-  save = { ...save, monsters: [{ ...save.monsters[0], levelFloor: 99 }] };
-  assert.equal(withLevelFloor(save, day(10)).monsters[0].levelFloor, 99);
 });
 
 // ---- Stats ----
