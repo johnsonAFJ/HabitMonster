@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pick your monster</title>
+  <link rel="icon" href="data:,">
+  <style>
+    :root {
+      --bg: #f4ecdb;
+      --card: #fffaf0;
+      --ink: #2b2220;
+      --muted: #7a6a5c;
+      --line: #d9cbb1;
+      --warn: #b0562e;
+      --pixel: 'Pixelify Sans', ui-monospace, monospace;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 32px 16px 48px;
+      background: var(--bg);
+      color: var(--ink);
+      font: 15px/1.5 system-ui, -apple-system, sans-serif;
+    }
+    .page { max-width: 900px; margin: 0 auto; }
+    h1 { font-family: var(--pixel); font-size: 30px; margin: 0 0 4px; }
+    .lede { color: var(--muted); margin: 0 0 28px; }
+    .row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+    .pick {
+      background: var(--card);
+      border: 2px solid var(--line);
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+    }
+    .art {
+      /* Checkerboard makes stray semi-transparent pixels obvious. */
+      background: repeating-conic-gradient(#e8dfcc 0 25%, #f7f1e4 0 50%) 0 0 / 16px 16px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      aspect-ratio: 1;
+      margin-bottom: 12px;
+    }
+    canvas {
+      image-rendering: pixelated;
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    .missing { color: var(--muted); font-size: 13px; padding: 12px; }
+    .missing code { font-size: 12px; overflow-wrap: anywhere; }
+    h2 { font-family: var(--pixel); font-size: 20px; margin: 0; }
+    .element { color: var(--muted); font-size: 13px; margin: 2px 0 8px; }
+    .blurb { font-size: 14px; margin: 0; text-align: left; }
+    .problem {
+      margin-top: 10px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: #f7e6dc;
+      color: var(--warn);
+      font-size: 13px;
+      text-align: left;
+    }
+    .note {
+      margin-top: 32px;
+      padding: 14px 16px;
+      border-left: 4px solid var(--line);
+      color: var(--muted);
+      font-size: 14px;
+    }
+    @media (max-width: 680px) {
+      .row { grid-template-columns: 1fr; }
+      .art { max-width: 280px; margin-inline: auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <h1>Pick your monster</h1>
+    <p class="lede">Three eggs are ready to hatch. Which one do you want?</p>
+    <div class="row" id="row"></div>
+    <div class="note" id="note">
+      These are the babies. Each one grows into something else twice along the
+      way — that part is a surprise.
+    </div>
+  </div>
+
+  <script type="module">
+    // Shows only row 0, column 0 of each sheet: the hatchling, normal mood.
+    // The evolved forms live in the same files and are deliberately not drawn
+    // here, so choosing a starter never spoils what it becomes.
+    const CELL = 64;
+    const SHEET = 192;
+
+    const STARTERS = [
+      {
+        species: 'embertail',
+        name: 'Embertail',
+        element: 'Fire',
+        blurb: 'A little ember-lizard with charcoal scales and a glowing crystal on its tail. Curious and stubborn, and it throws warm sparks when it gets excited.',
+      },
+      {
+        species: 'voltectra',
+        name: 'Voltectra',
+        element: 'Electric',
+        blurb: 'A quick, fox-like creature with big ears and cream fur. Its coppery whiskers store static, and it pops tiny harmless sparks to talk to its friends.',
+      },
+      {
+        species: 'bubbletide',
+        name: 'Bubbletide',
+        element: 'Water',
+        blurb: 'A round river turtle with a smooth jade shell covered in soft moss. It pulls water out of the air to make floating bubbles to play with.',
+      },
+    ];
+
+    function loadSheet(species) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => resolve(null);
+        img.src = `assets/${species}.png`;
+      });
+    }
+
+    // Everything the checkerboard can't show at a glance. Reads the hatchling
+    // cell only, so it never touches the evolved forms.
+    function inspect(img) {
+      const problems = [];
+      if (img.naturalWidth !== SHEET || img.naturalHeight !== SHEET) {
+        problems.push(`Sheet is ${img.naturalWidth}×${img.naturalHeight}, expected ${SHEET}×${SHEET}.`);
+        return problems;
+      }
+      const probe = document.createElement('canvas');
+      probe.width = CELL;
+      probe.height = CELL;
+      const ctx = probe.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(img, 0, 0, CELL, CELL, 0, 0, CELL, CELL);
+
+      let soft = 0;
+      let lowest = -1;
+      let filled = 0;
+      const { data } = ctx.getImageData(0, 0, CELL, CELL);
+      for (let i = 0; i < data.length; i += 4) {
+        const alpha = data[i + 3];
+        if (alpha === 0) continue;
+        if (alpha < 255) soft++;
+        filled++;
+        const y = Math.floor(i / 4 / CELL);
+        if (y > lowest) lowest = y;
+      }
+      if (!filled) problems.push('The hatchling cell is empty.');
+      if (soft) problems.push(`${soft} semi-transparent pixel${soft === 1 ? '' : 's'} — the outline will look muddy when scaled up.`);
+      if (filled && lowest !== CELL - 1) {
+        problems.push(`Feet sit on y ${lowest}, expected y ${CELL - 1}. The monster will float or sink in the room.`);
+      }
+      return problems;
+    }
+
+    const row = document.getElementById('row');
+    let anyArt = false;
+
+    for (const starter of STARTERS) {
+      const img = await loadSheet(starter.species);
+      const card = document.createElement('div');
+      card.className = 'pick';
+
+      const art = document.createElement('div');
+      art.className = 'art';
+      if (img) {
+        anyArt = true;
+        const canvas = document.createElement('canvas');
+        canvas.width = CELL;
+        canvas.height = CELL;
+        const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(img, 0, 0, CELL, CELL, 0, 0, CELL, CELL);
+        canvas.setAttribute('role', 'img');
+        canvas.setAttribute('aria-label', `${starter.name}, just hatched`);
+        art.append(canvas);
+      } else {
+        const missing = document.createElement('p');
+        missing.className = 'missing';
+        missing.innerHTML = `Not drawn yet.<br><code>assets/${starter.species}.png</code>`;
+        art.append(missing);
+      }
+      card.append(art);
+
+      const heading = document.createElement('h2');
+      heading.textContent = starter.name;
+      const element = document.createElement('p');
+      element.className = 'element';
+      element.textContent = starter.element;
+      const blurb = document.createElement('p');
+      blurb.className = 'blurb';
+      blurb.textContent = starter.blurb;
+      card.append(heading, element, blurb);
+
+      if (img) {
+        const problems = inspect(img);
+        for (const text of problems) {
+          const flag = document.createElement('p');
+          flag.className = 'problem';
+          flag.textContent = text;
+          card.append(flag);
+        }
+      }
+      row.append(card);
+    }
+
+    if (!anyArt) {
+      document.getElementById('note').textContent =
+        'No sprite sheets in assets/ yet. Drop embertail.png, voltectra.png and bubbletide.png in there — 192 × 192 each — and reload.';
+    }
+  </script>
+</body>
+</html>

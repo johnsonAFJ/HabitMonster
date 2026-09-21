@@ -229,7 +229,9 @@ The art in `assets/` is still the garden's, icon included.
 npm start
 ```
 
-That runs `python3 -m http.server 8438`. Open http://localhost:8438.
+That runs `node scripts/serve.mjs`, a dependency-free static server. Open
+http://localhost:8438. It replaced `python3 -m http.server`, which needs a
+readable working directory and so cannot start under a sandboxed launcher.
 
 Always use that exact address. The browser keeps saved data separately for
 each address, so opening the app on another port or by double-clicking
@@ -292,6 +294,8 @@ color:
 | `sw.js` | Offline support for the published site |
 | `scripts/make-icons.mjs` | Builds `assets/icons/` from `assets/icon.png` |
 | `sheet.html` | Sprite sheet preview, for checking new art |
+| `chooser.html` | Shows the three hatchlings side by side, so he can pick a starter without seeing the evolved forms. Flags wrong sizes, soft edges and bad baselines. |
+| `scripts/serve.mjs` | The local static server behind `npm start` |
 | `tests/monster.test.js` | Tests for `monster.js` |
 | `tests/garden.test.js` | Tests for `garden.js` |
 | `ART_BRIEF.md` | The Claude Design brief |
