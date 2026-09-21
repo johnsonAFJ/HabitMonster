@@ -124,29 +124,55 @@ visibly transforms, few enough that each one is an event.
 
 ## Sound
 
-Sound effects live in `assets/audio/`, named in `EFFECTS` in `js/sound.js`:
+Made by Claude Design. The `.wav` masters and the `.m4a` files the app
+actually loads both live in `assets/audio/`.
 
-| File | Plays when |
+| Sound | Plays when |
 | --- | --- |
-| `log.mp3` | a habit is logged |
-| `hatch.mp3` | the egg opens |
-| `level-up.mp3` | a level is reached |
-| `evolve.mp3` | a form changes, at level 5 and 15 |
-| `theme.mp3` | optional background music, looped |
+| `habit_complete` | a habit is logged |
+| `level_up` | a level is reached |
+| `evolve_form1_to_2` | the first evolution at level 5, and the hatch |
+| `evolve_form2_to_3` | the second evolution at level 15 |
+| `ui_confirm` | a starter is picked, a habit is added |
+| `ui_cancel` | a log is undone, a habit is deleted |
+| `ui_error` | a number entry or an import is rejected |
+| `ui_tap` | the sound is switched back on, the starter is changed |
+| `coin` | nothing yet. Earmarked for the furniture rewards |
+| `music_title_loop` | looped on the picker |
+| `music_room_loop` | looped in the game |
 
 Only the biggest thing that happened plays, so a hatch or an evolution is
-never drowned out by the ordinary logging sound.
+never drowned out by the ordinary logging sound. **There is no hatch sound**,
+so the first evolution fanfare stands in for it.
 
-**A missing file is silence.** Nothing throws and nothing is logged, so the
-app works before the audio lands and if a download ever fails. The service
-worker adds each file separately for the same reason: `cache.addAll` rejects
-the whole install if any one file 404s, which would cost the app its offline
-support over a missing sound.
+### Why it is built the way it is
 
-One **Sound: on / off** button in the header mutes effects and music together.
-The choice is saved per browser under `habit-monster-muted` and is not part of
-a backup. Phones refuse to play audio before the person has interacted with
-the page, so the first tap anywhere is what starts it.
+**AAC, not WAV.** The masters are 6.1 MB, and the service worker caches
+everything for offline use, so that is what a phone downloads on install and
+again on every deploy. `assets/audio/*.m4a` is the same audio at 1.2 MB,
+encoded with the `afconvert` that ships with macOS:
+
+```bash
+afconvert -f m4af -d aac -b 128000 -q 127 -s 2 in.wav out.m4a
+```
+
+The masters are kept beside them as the source to re-encode from. Nothing
+loads them, so they cost a clone, not a download.
+
+**Web Audio, not `<audio>`.** Decoded buffers loop sample-accurately. AAC
+played through an `<audio>` element leaves an audible gap at the seam from
+its encoder padding, which would be obvious on a 15 second title loop. It
+also lets a sound overlap itself without cloning nodes.
+
+**A missing file is silence.** Nothing throws and nothing is logged. The
+service worker adds each file separately for the same reason: `cache.addAll`
+rejects the whole install if any one file 404s, which would cost the app its
+offline support over a missing sound.
+
+One **Sound: on / off** button in the header mutes effects and music
+together. The choice is saved per browser under `habit-monster-muted` and is
+not part of a backup. Phones refuse to play audio before the person has
+interacted with the page, so the first tap is what starts it.
 
 ## The screen
 

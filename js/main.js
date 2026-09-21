@@ -10,7 +10,7 @@ import {
   loadArt, drawMonster, drawEgg, drawCell, drawCheer,
   CELL, ROOM_W, ROOM_H, CHEER_MS, MOOD_NORMAL, MOOD_HAPPY, MOOD_WORN,
 } from './art.js';
-import { play, unlock, isMuted, setMuted } from './sound.js';
+import { play, unlock, isMuted, setMuted, setMusic } from './sound.js';
 
 const ELEMENTS = { embertail: 'Fire', voltectra: 'Electric', bubbletide: 'Water' };
 const BLURBS = {
@@ -95,10 +95,11 @@ function commit(next, { cheer = false } = {}) {
   // drowned out by the ordinary logging sound.
   if (!before.hatched && after.hatched) {
     announce(`${STARTER_LABELS[after.species]} hatched!`);
-    play('hatch');
+    // No hatch sound was made, so the first evolution fanfare stands in.
+    play('evolve1');
   } else if (after.form > before.form) {
     announce(`${STARTER_LABELS[after.species]} evolved into its ${FORM_LABELS[after.form].toLowerCase()} form!`);
-    play('evolve');
+    play(after.form === 2 ? 'evolve2' : 'evolve1');
   } else if (after.level > before.level) {
     announce(`Level ${after.level}!`);
     play('levelUp');
@@ -142,6 +143,7 @@ function starterCard(species) {
 }
 
 function pick(species) {
+  play('confirm');
   picking = false;
   const base = save.monsters.length ? { ...save, monsters: [], activeMonster: null } : save;
   commit(chooseStarter(base, species, today));
@@ -218,7 +220,10 @@ function habitCard(habit, state) {
     const label = habit.type === 'number' ? `Today: ${formatValue(habit, habit.logs[today])}` : 'Done today';
     action = el('div', { className: 'done' },
       el('span', { textContent: label }),
-      button('Undo', () => commit(undoToday(save, habit.id, today)), 'ghost small'));
+      button('Undo', () => {
+        play('cancel');
+        commit(undoToday(save, habit.id, today));
+      }, 'ghost small'));
   } else if (habit.type === 'number') {
     const input = el('input', { type: 'number', step: 'any', required: true, placeholder: habit.unit || 'value', ariaLabel: `${habit.name} value` });
     action = el('form', {
@@ -228,6 +233,8 @@ function habitCard(habit, state) {
         const value = Number(input.value);
         if (input.value !== '' && Number.isFinite(value)) {
           commit(logToday(save, habit.id, today, value), { cheer: true });
+        } else {
+          play('error');
         }
       },
     }, input, el('button', { type: 'submit', textContent: 'Log it' }));
@@ -241,6 +248,7 @@ function habitCard(habit, state) {
   };
   const remove = () => {
     if (confirm(`Delete "${habit.name}"? The card goes away, but the experience it earned stays.`)) {
+      play('cancel');
       commit(deleteHabit(save, habit.id));
     }
   };
@@ -280,6 +288,7 @@ function emptyCard(offerForm, state) {
       onsubmit: (e) => {
         e.preventDefault();
         if (!name.value.trim()) return;
+        play('confirm');
         commit(addHabit(save, {
           name: name.value,
           type: type.value,
@@ -330,6 +339,7 @@ function render() {
   const showPicker = picking || !state.species;
   document.getElementById('picker').hidden = !showPicker;
   document.getElementById('game').hidden = showPicker;
+  setMusic(showPicker ? 'title' : 'room');
 
   if (showPicker) renderPicker();
   else {
@@ -350,6 +360,8 @@ function renderMute() {
 document.getElementById('mute').onclick = () => {
   setMuted(!isMuted());
   renderMute();
+  // Turning it back on should make a noise, so you know it worked.
+  if (!isMuted()) play('tap');
 };
 
 // Phones refuse to play audio until the person has interacted with the page,
@@ -358,6 +370,7 @@ document.addEventListener('pointerdown', unlock, { once: true });
 document.addEventListener('keydown', unlock, { once: true });
 
 document.getElementById('change-starter').onclick = () => {
+  play('tap');
   picking = true;
   render();
 };
@@ -381,6 +394,7 @@ document.getElementById('import').onchange = async (e) => {
       commit(imported);
     }
   } catch (err) {
+    play('error');
     alert(`Couldn't import that file. ${err.message}`);
   }
 };

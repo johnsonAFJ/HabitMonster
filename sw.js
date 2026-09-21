@@ -15,7 +15,7 @@
 //
 // Bump CACHE whenever the file list below changes.
 
-const CACHE = 'monster-v4';
+const CACHE = 'monster-v5';
 
 const APP_FILES = [
   './',
@@ -37,11 +37,17 @@ const APP_FILES = [
 
 // Cached if they exist. Audio is optional: the app is silent without it.
 const EXTRA_FILES = [
-  './assets/audio/log.mp3',
-  './assets/audio/hatch.mp3',
-  './assets/audio/level-up.mp3',
-  './assets/audio/evolve.mp3',
-  './assets/audio/theme.mp3',
+  './assets/audio/ui_tap.m4a',
+  './assets/audio/ui_confirm.m4a',
+  './assets/audio/ui_cancel.m4a',
+  './assets/audio/ui_error.m4a',
+  './assets/audio/habit_complete.m4a',
+  './assets/audio/level_up.m4a',
+  './assets/audio/evolve_form1_to_2.m4a',
+  './assets/audio/evolve_form2_to_3.m4a',
+  './assets/audio/coin.m4a',
+  './assets/audio/music_title_loop.m4a',
+  './assets/audio/music_room_loop.m4a',
 ];
 
 // Google Fonts (the pixel font) is cached the first time it loads.

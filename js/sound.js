@@ -1,30 +1,48 @@
-// Sound effects and optional background music, with one mute for both.
+// Sound effects and looping music, with one mute for both.
 //
-// Files live in assets/audio/. A missing file is simply silence: nothing
-// throws, nothing logs, and the rest of the app carries on. That keeps the
-// app working before the audio lands, and if a file ever fails to download.
+// Built on the Web Audio API rather than <audio> elements, for two reasons:
+// decoded buffers loop sample-accurately, where AAC played through an <audio>
+// element leaves an audible gap at the seam from its encoder padding; and the
+// same sound can overlap itself without cloning nodes.
 //
-// To rename or add a sound, edit EFFECTS. Nothing else needs to change.
+// Files live in assets/audio/ as .m4a, encoded from the .wav masters beside
+// them (6.1 MB of WAV compresses to 1.2 MB, which matters because the service
+// worker caches all of it for offline use).
+//
+// A missing or unplayable file is silence. Nothing throws and nothing logs,
+// so the app works whether or not the audio is there.
 
 const KEY = 'habit-monster-muted';
 const DIR = 'assets/audio';
 
 export const EFFECTS = {
-  log: 'log.mp3',        // a habit is logged
-  hatch: 'hatch.mp3',    // the egg opens
-  levelUp: 'level-up.mp3',
-  evolve: 'evolve.mp3',
+  tap: 'ui_tap.m4a',
+  confirm: 'ui_confirm.m4a',
+  cancel: 'ui_cancel.m4a',
+  error: 'ui_error.m4a',
+  log: 'habit_complete.m4a',
+  levelUp: 'level_up.m4a',
+  evolve1: 'evolve_form1_to_2.m4a',
+  evolve2: 'evolve_form2_to_3.m4a',
+  // Unused for now. Earmarked for the furniture rewards at levels 3, 6, 9...
+  coin: 'coin.m4a',
 };
 
-export const MUSIC = 'theme.mp3';
+export const MUSIC = {
+  title: 'music_title_loop.m4a',
+  room: 'music_room_loop.m4a',
+};
 
-const EFFECT_VOLUME = 0.6;
-const MUSIC_VOLUME = 0.3;
+const EFFECT_VOLUME = 0.7;
+const MUSIC_VOLUME = 0.25;
 
+let ctx = null;
+let master = null;
 let muted = readMuted();
-let music = null;
-let unlocked = false;
-const sources = new Map();
+let track = null;
+let musicSource = null;
+let musicToken = 0;
+const buffers = new Map();
 
 function readMuted() {
   try {
@@ -39,6 +57,66 @@ export function isMuted() {
   return muted;
 }
 
+function decode(file) {
+  if (!buffers.has(file)) {
+    buffers.set(file, fetch(`${DIR}/${file}`)
+      .then((response) => (response.ok ? response.arrayBuffer() : Promise.reject(new Error(file))))
+      .then((data) => ctx.decodeAudioData(data))
+      .catch(() => null));
+  }
+  return buffers.get(file);
+}
+
+export async function play(name) {
+  if (muted || !ctx) return;
+  const file = EFFECTS[name];
+  if (!file) return;
+  const buffer = await decode(file);
+  if (!buffer || muted) return;
+  const gain = ctx.createGain();
+  gain.gain.value = EFFECT_VOLUME;
+  gain.connect(master);
+  const source = ctx.createBufferSource();
+  source.buffer = buffer;
+  source.connect(gain);
+  source.start();
+}
+
+function stopMusic() {
+  if (!musicSource) return;
+  try {
+    musicSource.stop();
+  } catch {
+    // Already stopped.
+  }
+  musicSource = null;
+}
+
+async function startMusic() {
+  const token = ++musicToken;
+  stopMusic();
+  if (muted || !ctx || !track) return;
+  const buffer = await decode(MUSIC[track]);
+  // The track can change, or be muted, while the file is still decoding.
+  if (!buffer || token !== musicToken || muted) return;
+  const gain = ctx.createGain();
+  gain.gain.value = MUSIC_VOLUME;
+  gain.connect(master);
+  const source = ctx.createBufferSource();
+  source.buffer = buffer;
+  source.loop = true;
+  source.connect(gain);
+  source.start();
+  musicSource = source;
+}
+
+// Which loop should be playing: 'title' on the picker, 'room' in the game.
+export function setMusic(next) {
+  if (next === track) return;
+  track = next;
+  startMusic();
+}
+
 export function setMuted(next) {
   muted = next;
   try {
@@ -46,42 +124,22 @@ export function setMuted(next) {
   } catch {
     // Still takes effect for this visit if storage is blocked.
   }
-  if (!music) return;
-  if (muted) music.pause();
-  else music.play().catch(() => {});
+  if (muted) stopMusic();
+  else startMusic();
 }
 
-function source(file) {
-  if (!sources.has(file)) {
-    const audio = new Audio(`${DIR}/${file}`);
-    audio.preload = 'auto';
-    audio.volume = EFFECT_VOLUME;
-    sources.set(file, audio);
-  }
-  return sources.get(file);
-}
-
-export function play(name) {
-  if (muted || !unlocked) return;
-  const file = EFFECTS[name];
-  if (!file) return;
-  // Cloning lets a sound overlap itself and restart instantly, instead of
-  // being ignored because the one element is already playing.
-  const node = source(file).cloneNode();
-  node.volume = EFFECT_VOLUME;
-  node.play().catch(() => {});
-}
-
-// Phones refuse to play anything until the person has interacted with the
-// page, so the first tap is what actually starts the audio. Calling this
-// again later is harmless.
+// Phones refuse to play audio until the person has interacted with the page,
+// so the first tap is what actually starts it. Calling this again is harmless.
 export function unlock() {
-  if (unlocked) return;
-  unlocked = true;
-  if (!music) {
-    music = new Audio(`${DIR}/${MUSIC}`);
-    music.loop = true;
-    music.volume = MUSIC_VOLUME;
+  if (ctx) {
+    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+    return;
   }
-  if (!muted) music.play().catch(() => {});
+  const Context = window.AudioContext || window.webkitAudioContext;
+  if (!Context) return;
+  ctx = new Context();
+  master = ctx.createGain();
+  master.connect(ctx.destination);
+  if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+  startMusic();
 }
