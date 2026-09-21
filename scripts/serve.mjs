@@ -41,8 +41,10 @@ createServer(async (req, res) => {
     const body = await readFile(file);
     res.writeHead(200, {
       'Content-Type': TYPES[extname(file)] ?? 'application/octet-stream',
-      // Always revalidate, so an edit shows up on a plain reload.
-      'Cache-Control': 'no-cache',
+      // Never cache during development. `no-cache` alone is not enough:
+      // without an ETag or Last-Modified there is nothing to revalidate
+      // against, so browsers keep serving the copy in memory.
+      'Cache-Control': 'no-store, must-revalidate',
     });
     res.end(body);
   } catch {

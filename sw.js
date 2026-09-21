@@ -3,7 +3,7 @@
 // update is published, the first open shows the old version and the next
 // open shows the new one. Bump CACHE only if the file list below changes.
 
-const CACHE = 'monster-v1';
+const CACHE = 'monster-v2';
 
 const APP_FILES = [
   './',
@@ -11,11 +11,13 @@ const APP_FILES = [
   './manifest.webmanifest',
   './css/style.css',
   './js/main.js',
-  './js/garden.js',
+  './js/monster.js',
   './js/storage.js',
-  './js/sprites.js',
-  './assets/plants.png',
-  './assets/terrarium.png',
+  './js/art.js',
+  './assets/room.png',
+  './assets/embertail.png',
+  './assets/voltectra.png',
+  './assets/bubbletide.png',
   './assets/icons/icon-180.png',
   './assets/icons/icon-192.png',
 ];

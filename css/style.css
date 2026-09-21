@@ -39,10 +39,13 @@ body {
   margin-bottom: 12px;
 }
 
-h1, h2 { font-family: var(--pixel); margin: 0; }
+h1, h2, h3 { font-family: var(--pixel); margin: 0; }
 h1 { font-size: 28px; }
 h2 { font-size: 18px; overflow-wrap: anywhere; }
+h3 { font-size: 17px; }
 .today { margin: 0; color: var(--muted); }
+
+/* ---- The room ---- */
 
 #scene {
   display: block;
@@ -53,7 +56,101 @@ h2 { font-size: 18px; overflow-wrap: anywhere; }
   border-radius: 4px;
 }
 
-/* One card under each planting spot. */
+/* Level-ups and evolutions, announced over the room for a few seconds. */
+.cheer {
+  margin: 0;
+  height: 0;
+  overflow: hidden;
+  text-align: center;
+  font-family: var(--pixel);
+  font-size: 17px;
+  color: var(--accent);
+  opacity: 0;
+  transition: opacity 180ms ease, height 180ms ease;
+}
+.cheer.shown { height: 26px; opacity: 1; }
+
+/* ---- Status strip ---- */
+
+.status {
+  margin-top: 10px;
+  padding: 12px 14px;
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: 6px;
+}
+.status-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.level { font-family: var(--pixel); color: var(--muted); font-size: 15px; }
+
+.xp {
+  margin-top: 8px;
+  height: 14px;
+  background: #ece2cd;
+  border: 2px solid var(--ink);
+  border-radius: 3px;
+  overflow: hidden;
+}
+/* Red when empty, green as it fills. The width and color are set in code.
+   The minimum keeps a sliver of red visible at zero, so an empty bar still
+   reads as empty rather than as missing. */
+.xp-fill {
+  height: 100%;
+  width: 0;
+  min-width: 5px;
+  transition: width 240ms ease, background-color 240ms ease;
+}
+
+.status-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 6px;
+}
+.xp-label { font-family: var(--pixel); font-size: 14px; }
+
+.pips { display: inline-flex; gap: 4px; }
+.pip {
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--ink);
+  border-radius: 2px;
+  background: #ece2cd;
+}
+.pip.full { background: var(--warn); }
+
+.restart { margin: 6px 0 0; }
+
+/* ---- Stats ---- */
+
+.stats-panel {
+  margin-top: 10px;
+  padding: 12px 14px;
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: 6px;
+}
+.stat-list {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px 10px;
+  margin: 8px 0 0;
+}
+.stat-list dt { color: var(--muted); font-size: 13px; }
+.stat-list dd {
+  margin: 0;
+  font-family: var(--pixel);
+  font-size: 20px;
+}
+
+/* ---- Habit cards ---- */
+
 .cards {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -70,37 +167,58 @@ h2 { font-size: 18px; overflow-wrap: anywhere; }
   flex-direction: column;
   gap: 4px;
 }
-
 .card p { margin: 0; }
-.plant, .stats { color: var(--muted); font-size: 13px; }
-.health { font-family: var(--pixel); font-size: 14px; color: var(--accent); }
-.health-2 .health, .health-3 .health { color: #9a7a2a; }
-.health-4 .health { color: var(--warn); }
-
-/* Name and stats on the left, the optional full-grown preview in the top-right corner. */
-.card-head {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-}
-.info {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.preview {
-  flex: none;
-  image-rendering: pixelated;
-  background: #eef5ef;
-  border-radius: 4px;
-}
-
-.scene-tools { display: flex; justify-content: flex-end; margin-bottom: 6px; }
+.meta { color: var(--muted); font-size: 13px; }
+.trains { font-family: var(--pixel); font-size: 14px; color: var(--accent); }
 
 .card.empty { border-style: dashed; justify-content: center; }
 .hint { color: var(--muted); text-align: center; }
+
+.stat-pick { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; }
+.stat-pick .hint { text-align: left; font-size: 13px; }
+
+/* ---- The picker ---- */
+
+.picker-title { font-size: 24px; }
+.picker-lede { margin: 4px 0 16px; color: var(--muted); }
+.picks {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.pick {
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  padding: 14px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pick.current { border-color: var(--accent); }
+.pick-frame {
+  background: #ece2cd;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  /* Without an explicit width this shrinks to the canvas's natural 64px
+     instead of filling the card. */
+  width: 100%;
+  aspect-ratio: 1;
+  margin-bottom: 4px;
+}
+.pick-art {
+  image-rendering: pixelated;
+  width: 100%;
+  height: auto;
+}
+.pick .element { margin: 0; color: var(--muted); font-size: 13px; }
+.pick .blurb { margin: 0 0 8px; font-size: 14px; text-align: left; }
+.pick button { margin-top: auto; }
+.picker-note { margin-top: 18px; color: var(--muted); font-size: 14px; }
+
+/* ---- Controls ---- */
 
 button, .file {
   font: inherit;
@@ -155,12 +273,16 @@ input, select {
 }
 .manage { display: flex; gap: 12px; margin-top: auto; padding-top: 8px; }
 
+/* ---- Footer ---- */
+
 .bottom { margin-top: 24px; color: var(--muted); font-size: 13px; }
 .backup { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .file input { display: none; }
 .stale { color: var(--warn); }
-.art-note { margin: 10px 0 0; }
+.art-note { margin: 10px 0 0; color: var(--warn); }
 
 @media (max-width: 600px) {
-  .cards { grid-template-columns: 1fr; }
+  .cards, .picks { grid-template-columns: 1fr; }
+  .pick-frame { max-width: 240px; margin-inline: auto; }
+  .stat-list { grid-template-columns: repeat(2, 1fr); }
 }

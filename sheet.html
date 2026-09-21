@@ -5,51 +5,92 @@
   <title>Sprite Sheet Preview</title>
   <link rel="icon" href="data:,">
   <style>
-    body { margin: 0; padding: 16px; background: #f4ecdb; color: #2b2220; font: 14px system-ui, sans-serif; }
-    canvas { image-rendering: pixelated; display: block; margin: 8px 0 20px; max-width: 100%; }
-    #sheet { background: repeating-conic-gradient(#e8dfcc 0 25%, #f7f1e4 0 50%) 0 0 / 16px 16px; }
+    body { margin: 0; padding: 16px 16px 48px; background: #f4ecdb; color: #2b2220; font: 14px system-ui, sans-serif; }
+    h1 { font-size: 22px; }
+    h2 { font-size: 17px; margin: 28px 0 4px; }
+    p { color: #7a6a5c; margin: 0 0 8px; }
+    canvas { image-rendering: pixelated; display: block; margin: 8px 0 16px; max-width: 100%; }
+    .sheet { background: repeating-conic-gradient(#e8dfcc 0 25%, #f7f1e4 0 50%) 0 0 / 16px 16px; }
+    .rooms { display: flex; gap: 12px; flex-wrap: wrap; }
+    .rooms canvas { border: 2px solid #2b2220; }
+    .missing { color: #b0562e; }
   </style>
 </head>
 <body>
   <h1>Sprite sheet preview</h1>
-  <p id="source"></p>
-  <p>Rows: tulip, sunflower, echeveria, cactus. Columns: growth × 5 + health. Lines mark the cells.</p>
-  <canvas id="sheet"></canvas>
-  <p>Terrarium with each species at full bloom, then the cactus thriving, drooping and fully wilted.</p>
-  <canvas id="terrarium"></canvas>
-  <canvas id="terrarium-wilt"></canvas>
+  <p>Every cell of each sheet, then each form standing in the room so the
+     placement can be checked. Rows are forms, columns are moods.</p>
+  <div id="out"></div>
+
   <script type="module">
-    import { loadArt, drawPlant, SPOTS_X } from './js/sprites.js';
+    import { STARTERS, STARTER_LABELS, FORM_LABELS } from './js/monster.js';
+    import { loadArt, drawMonster, drawEgg, CELL, SHEET, ROOM_W, ROOM_H } from './js/art.js';
 
+    const MOODS = ['normal', 'happy', 'worn out'];
     const art = await loadArt();
-    const { cell } = art;
-    document.getElementById('source').textContent =
-      `Plants: ${art.custom.plants ? 'assets/plants.png' : 'placeholder'} (${cell} px cells) · ` +
-      `Terrarium: ${art.custom.terrarium ? 'assets/terrarium.png' : 'placeholder'} (192 × ${art.sceneH})`;
+    const out = document.getElementById('out');
 
-    // Sheet at 2x with cell lines.
-    const sheetCanvas = document.getElementById('sheet');
-    sheetCanvas.width = art.plants.width * 2;
-    sheetCanvas.height = art.plants.height * 2;
-    sheetCanvas.style.width = `${sheetCanvas.width}px`;
-    const sheet = sheetCanvas.getContext('2d');
-    sheet.imageSmoothingEnabled = false;
-    sheet.drawImage(art.plants, 0, 0, sheetCanvas.width, sheetCanvas.height);
-    sheet.fillStyle = 'rgba(43, 34, 32, 0.25)';
-    for (let x = cell * 2; x < sheetCanvas.width; x += cell * 2) sheet.fillRect(x, 0, x % (cell * 10) === 0 ? 2 : 1, sheetCanvas.height);
-    for (let y = cell * 2; y < sheetCanvas.height; y += cell * 2) sheet.fillRect(0, y, sheetCanvas.width, 1);
-
-    function scene(id, plants) {
-      const canvas = document.getElementById(id);
-      canvas.width = 192;
-      canvas.height = art.sceneH;
-      canvas.style.width = '576px';
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(art.terrarium, 0, 0);
-      plants.forEach(([species, growth, health, x]) => drawPlant(ctx, art, species, growth, health, x));
+    function node(tag, text, className) {
+      const n = document.createElement(tag);
+      if (text) n.textContent = text;
+      if (className) n.className = className;
+      return n;
     }
-    scene('terrarium', SPOTS_X.map((x, i) => [i, 3, 0, x]));
-    scene('terrarium-wilt', [0, 2, 4].map((h, i) => [3, 3, h, SPOTS_X[i]]));
+
+    for (const species of STARTERS) {
+      out.append(node('h2', STARTER_LABELS[species]));
+      if (!art.sheets[species]) {
+        out.append(node('p', `assets/${species}.png is missing or the wrong size.`, 'missing'));
+        continue;
+      }
+      out.append(node('p', `Rows: ${FORM_LABELS.join(', ')}. Columns: ${MOODS.join(', ')}.`));
+
+      // The whole sheet at 2x, with cell lines.
+      const sheet = document.createElement('canvas');
+      sheet.className = 'sheet';
+      sheet.width = SHEET * 2;
+      sheet.height = SHEET * 2;
+      sheet.style.width = `${SHEET * 2}px`;
+      const sctx = sheet.getContext('2d');
+      sctx.imageSmoothingEnabled = false;
+      sctx.drawImage(art.sheets[species], 0, 0, sheet.width, sheet.height);
+      sctx.fillStyle = 'rgba(43, 34, 32, 0.3)';
+      for (let i = 1; i < 3; i++) {
+        sctx.fillRect(i * CELL * 2, 0, 1, sheet.height);
+        sctx.fillRect(0, i * CELL * 2, sheet.width, 1);
+      }
+      out.append(sheet);
+
+      // Each form in the room, normal mood, to check it sits on the floor.
+      const rooms = node('div', null, 'rooms');
+      for (let form = 0; form < 3; form++) {
+        const room = document.createElement('canvas');
+        room.width = ROOM_W;
+        room.height = ROOM_H;
+        room.style.width = `${ROOM_W * 1.5}px`;
+        room.title = FORM_LABELS[form];
+        const rctx = room.getContext('2d');
+        rctx.imageSmoothingEnabled = false;
+        if (art.room) rctx.drawImage(art.room, 0, 0);
+        drawMonster(rctx, art, species, form, 0);
+        rooms.append(room);
+      }
+      out.append(rooms);
+    }
+
+    // The egg, which is drawn in code rather than loaded.
+    out.append(node('h2', 'Egg'));
+    out.append(node('p', 'Drawn in code, shown before the first habit is logged.'));
+    const eggRoom = document.createElement('canvas');
+    eggRoom.width = ROOM_W;
+    eggRoom.height = ROOM_H;
+    eggRoom.style.width = `${ROOM_W * 1.5}px`;
+    eggRoom.style.border = '2px solid #2b2220';
+    const ectx = eggRoom.getContext('2d');
+    ectx.imageSmoothingEnabled = false;
+    if (art.room) ectx.drawImage(art.room, 0, 0);
+    drawEgg(ectx);
+    out.append(eggRoom);
   </script>
 </body>
 </html>

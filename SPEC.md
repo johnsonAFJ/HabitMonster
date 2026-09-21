@@ -9,10 +9,6 @@ https://johnsonafj.github.io/MicroHabitGarden/. The habit logging, dates,
 backups and phone support are inherited from it. The plants, terrarium and
 per-plant health are being replaced by the monster rules below.
 
-**Build status.** `js/monster.js` and its tests implement the rules below.
-The page itself (`index.html`, `js/main.js`, `js/sprites.js`) is still the
-garden and still uses `js/garden.js`. The swap happens when the art arrives.
-
 ## The monster
 
 - **One active monster**, fed by all habits. Not one per habit.
@@ -219,9 +215,13 @@ overwrite each other's saves and caches.
 | `icon.png` | 32 x 32 | A monster egg, scaled by `npm run icons` |
 
 Moods are normal, happy (logged today) and worn out (health 0). Feet sit on
-y 63 of each cell, centered on x 31-32, identical across each row.
+y 63 of each cell, centered on x 31-32, identical across each row. The cell's
+bottom row is drawn **on** the floor line at y 128, not the wall pixel above
+it, or the monster floats.
 
-The art in `assets/` is still the garden's, icon included.
+`npm run check-art` verifies all of that, plus semi-transparent pixels and
+palette size. The egg is drawn in code, since it is the same for all three
+starters and only appears before the first log.
 
 ## Running it
 
@@ -285,11 +285,10 @@ color:
 
 | Path | What it holds |
 | --- | --- |
-| `js/monster.js` | The new rules: dates, XP, levels, health, forms, stats, habit changes. No DOM, so Node can test it. |
-| `js/garden.js` | The old plant rules. Still drives the page until the art swap. |
+| `js/monster.js` | All rules: dates, XP, levels, health, forms, stats, habit changes. No DOM, so Node can test it. |
 | `js/storage.js` | localStorage save and load, JSON export and import |
-| `js/sprites.js` | Loads `assets/*.png` if present, otherwise draws placeholders |
-| `js/main.js` | Page wiring: canvas scene, habit cards, animation, midnight rollover |
+| `js/art.js` | Loads the sheets and room, draws the monster, the egg and the cheer sparkles |
+| `js/main.js` | Page wiring: the picker, the room, the status strip, habit cards, midnight rollover |
 | `manifest.webmanifest` | App name, icons and colors for installing on a phone |
 | `sw.js` | Offline support for the published site |
 | `scripts/make-icons.mjs` | Builds `assets/icons/` from `assets/icon.png` |
@@ -297,7 +296,7 @@ color:
 | `chooser.html` | Shows the three hatchlings side by side, so he can pick a starter without seeing the evolved forms. Flags wrong sizes, soft edges and bad baselines. |
 | `scripts/serve.mjs` | The local static server behind `npm start` |
 | `tests/monster.test.js` | Tests for `monster.js` |
-| `tests/garden.test.js` | Tests for `garden.js` |
+| `scripts/check-art.mjs` | `npm run check-art`: verifies delivered art against the brief |
 | `ART_BRIEF.md` | The Claude Design brief |
 
 ## Not in version 1

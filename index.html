@@ -25,13 +25,41 @@
       <p class="today" id="today"></p>
     </header>
 
-    <div class="scene-tools">
-      <button type="button" class="ghost small" id="toggle-previews">Show full-grown plants</button>
-    </div>
+    <!-- Shown until a starter is chosen, and any time it is changed before
+         the egg hatches. Only the hatchling is ever drawn here. -->
+    <section class="picker" id="picker" hidden aria-label="Pick your monster">
+      <h2 class="picker-title">Pick your monster</h2>
+      <p class="picker-lede">Three eggs are ready to hatch. Which one do you want?</p>
+      <div class="picks" id="picks"></div>
+      <p class="picker-note">These are the babies. Each one grows into something else twice along the way.</p>
+    </section>
 
-    <canvas id="scene" width="192" height="96" aria-label="Terrarium with your habit plants"></canvas>
+    <section class="game" id="game" hidden>
+      <canvas id="scene" width="256" height="160" aria-label="Your monster at home"></canvas>
+      <p class="cheer" id="cheer" role="status" aria-live="polite"></p>
 
-    <section class="cards" id="cards" aria-label="Habits"></section>
+      <div class="status" id="status">
+        <div class="status-head">
+          <h2 id="monster-name">Egg</h2>
+          <span class="level" id="level"></span>
+        </div>
+        <div class="xp" id="xp-track">
+          <div class="xp-fill" id="xp-fill"></div>
+        </div>
+        <div class="status-foot">
+          <span class="xp-label" id="xp-label"></span>
+          <span class="pips" id="health"></span>
+        </div>
+        <p class="restart"><button type="button" class="link" id="change-starter">Pick a different one</button></p>
+      </div>
+
+      <section class="stats-panel" id="stats-panel" hidden>
+        <h2>Stats</h2>
+        <dl class="stat-list" id="stat-list"></dl>
+      </section>
+
+      <section class="cards" id="cards" aria-label="Habits"></section>
+    </section>
 
     <footer class="bottom">
       <div class="backup">
