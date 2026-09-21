@@ -168,19 +168,21 @@ export function hasHatched(save) {
 // Everything the screen needs in one object.
 export function monsterState(save, today) {
   const monster = activeMonster(save);
-  const { xp, health } = replay(save, today);
-  const earned = levelFromXp(xp);
+  const { xp: earned, health } = replay(save, today);
   // levelFloor is the one stored derived value, so retuning the curve later
-  // can only ever be good news.
-  const level = Math.max(earned, monster?.levelFloor ?? 1);
+  // can only ever be good news. It raises the EXPERIENCE, not just the level:
+  // flooring only the level lets the bar measure one level while the label
+  // shows another, so filling the bar appears to do nothing.
+  const xp = Math.max(earned, xpForLevel(monster?.levelFloor ?? 1));
+  const level = levelFromXp(xp);
   return {
     species: monster?.species ?? null,
     hatched: hasHatched(save),
     xp,
     level,
     form: formForLevel(level),
-    intoLevel: xp - xpForLevel(earned),
-    levelNeeds: levelCost(earned),
+    intoLevel: xp - xpForLevel(level),
+    levelNeeds: levelCost(level),
     health,
     wornOut: health === 0,
     stats: statTotals(save),

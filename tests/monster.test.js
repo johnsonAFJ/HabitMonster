@@ -163,6 +163,40 @@ test('levelFloor holds the level up if the curve is ever retuned', () => {
   assert.equal(monsterState(floored, day(1)).form, 1, 'the form follows the floored level');
 });
 
+test('the bar always measures the level that is on screen', () => {
+  // Undoing a log drops experience below the floor. Flooring only the level
+  // left the bar measuring the level below the one shown, so filling it
+  // appeared to do nothing: it reset without the level going up.
+  let save = saveWith(3);
+  save.habits.forEach((h) => { save = logToday(save, h.id, DAY1); });
+  save = withLevelFloor(save, DAY1);
+  const full = monsterState(save, DAY1);
+  assert.equal(full.level, 2, '30 base plus the health bonus is exactly level 2');
+  assert.equal(full.levelNeeds, levelCost(2));
+
+  save = undoToday(save, save.habits[0].id, DAY1);
+  save = undoToday(save, save.habits[1].id, DAY1);
+  const after = monsterState(save, DAY1);
+  assert.equal(after.level, full.level, 'the floor holds the level');
+  assert.equal(after.levelNeeds, levelCost(after.level), 'and the bar measures that same level');
+  assert.equal(after.xp - after.intoLevel, xpForLevel(after.level));
+});
+
+test('level, bar and experience agree in every state', () => {
+  let save = saveWith(2);
+  for (let d = 1; d <= 20; d++) {
+    // Log, sometimes undo, and check the invariant after every change.
+    save.habits.forEach((h) => { save = logToday(save, h.id, day(d)); });
+    if (d % 3 === 0) save = undoToday(save, save.habits[0].id, day(d));
+    save = withLevelFloor(save, day(d));
+    const s = monsterState(save, day(d));
+    assert.equal(s.level, levelFromXp(s.xp), `day ${d}: level matches experience`);
+    assert.equal(s.intoLevel, s.xp - xpForLevel(s.level), `day ${d}: bar position`);
+    assert.equal(s.levelNeeds, levelCost(s.level), `day ${d}: bar length`);
+    assert.ok(s.intoLevel < s.levelNeeds, `day ${d}: bar is never past full`);
+  }
+});
+
 test('withLevelFloor never lowers the floor', () => {
   let save = logDays(saveWith(1), 10);
   save = { ...save, monsters: [{ ...save.monsters[0], levelFloor: 99 }] };

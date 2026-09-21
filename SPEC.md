@@ -59,6 +59,10 @@ needs 42,000 XP, about three years of perfect logging.
 
 Evolutions land at level 5 and level 15.
 
+A perfect day is worth **35 until level 5**, not 40: the breadth bonus is
+locked until the first evolution. So the 40/day row below is a planning
+figure rather than something reachable from day one.
+
 | | Level 5 | Level 15 | Level 25 |
 | --- | --- | --- | --- |
 | Logging everything, 40/day | day 5 | day 31 | day 77 |
@@ -76,8 +80,10 @@ Two protections, because the spec promises it and both edge cases are real:
   logs. XP replay reads live and retired habits together, so deleting never
   lowers the level and never rewrites a past breadth bonus.
 - **`levelFloor`** is stored on the monster: the highest level ever reached.
-  Display never goes below it. Retuning the curve later can only ever be good
-  news.
+  Retuning the curve later can only ever be good news. It raises the
+  **experience**, not just the level: flooring only the level lets the bar
+  measure one level while the label shows another, so undoing a log leaves a
+  bar that resets without the level ever going up.
 
 ## Health
 
