@@ -253,11 +253,15 @@ https://johnsonafj.github.io/HabitMonster/ within a minute or two of a push.
 To install it on an iPhone, open the URL in Safari, tap Share, then
 **Add to Home Screen**.
 
-- **Offline.** `sw.js` caches the app, so it opens without a signal. It serves
-  the cached copy first and fetches updates in the background, so after a
-  change is published the first open shows the old version and the next shows
-  the new one. Bump `CACHE` in `sw.js` only when its file list changes. The
-  offline script is skipped on `localhost` so local edits show up on reload.
+- **Offline.** `sw.js` caches the app, so it opens without a signal. It uses
+  two strategies. The **app shell** (the page, its CSS and its JS) is
+  network-first, so a push lands on the next open with a signal instead of
+  taking two reloads; the cache is the fallback when there is no network.
+  The **art** is cache-first with a background refresh, since it is big and
+  rarely changes. The shell moves as one piece: serving fresh HTML alongside
+  cached JS would mean a new page running old code. Bump `CACHE` in `sw.js`
+  whenever its file list changes. The offline script is skipped on
+  `localhost` so local edits show up on reload.
 - **Separate saves.** `localhost:8438`, the site in Safari and the home-screen
   app each keep their own data. Export from one and import in the other to
   move it. On an iPhone, import inside the home-screen app, not in Safari.
