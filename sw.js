@@ -15,7 +15,7 @@
 //
 // Bump CACHE whenever the file list below changes.
 
-const CACHE = 'monster-v6';
+const CACHE = 'monster-v7';
 
 const APP_FILES = [
   './',
@@ -43,6 +43,7 @@ const EXTRA_FILES = [
   './assets/audio/ui_cancel.m4a',
   './assets/audio/ui_error.m4a',
   './assets/audio/habit_complete.m4a',
+  './assets/audio/monster_eat_apple.m4a',
   './assets/audio/level_up.m4a',
   './assets/audio/evolve_form1_to_2.m4a',
   './assets/audio/evolve_form2_to_3.m4a',

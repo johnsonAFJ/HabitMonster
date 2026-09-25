@@ -51,7 +51,12 @@ function drawScene(now = performance.now()) {
       requestAnimationFrame(drawScene);
       return;
     }
+    // The frame above was drawn while it was still eating, so it is still
+    // wearing the happy face. Clear the treat and draw once more, or it keeps
+    // that face until something else happens to redraw the room.
     feedStart = null;
+    drawScene();
+    return;
   }
 
   if (cheerStart !== null) {
@@ -428,7 +433,7 @@ document.getElementById('rename-monster').onclick = askName;
 document.getElementById('feed').onclick = () => {
   if (hasFedToday(save, today)) return;
   feedStart = performance.now();
-  play('confirm');
+  play('eat');
   commit(feedMonster(save, save.activeMonster, today));
 };
 

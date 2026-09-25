@@ -215,6 +215,7 @@ actually loads both live in `assets/audio/`.
 | Sound | Plays when |
 | --- | --- |
 | `habit_complete` | a habit is logged |
+| `monster_eat_apple` | a treat is given |
 | `level_up` | a level is reached |
 | `evolve_form1_to_2` | the first evolution at level 5, and the hatch |
 | `evolve_form2_to_3` | the second evolution at level 15 |
@@ -222,13 +223,18 @@ actually loads both live in `assets/audio/`.
 | `ui_cancel` | a log is undone, a habit is deleted |
 | `ui_error` | a number entry or an import is rejected |
 | `ui_tap` | the sound is switched back on, the starter is changed |
-| `coin` | nothing yet. Earmarked for the furniture rewards |
+| `coin` | a new piece of furniture arrives |
 | `music_title_loop` | looped on the picker |
 | `music_room_loop` | looped in the game |
 
 Only the biggest thing that happened plays, so a hatch or an evolution is
 never drowned out by the ordinary logging sound. **There is no hatch sound**,
 so the first evolution fanfare stands in for it.
+
+The treat animation runs for as long as `monster_eat_apple` does, 2.4 seconds.
+The berry lands and scatters in the first second and nothing is drawn after
+that; the animation stays open anyway, because that is what holds the monster
+in its happy face while the chewing is still audible.
 
 ### Why it is built the way it is
 

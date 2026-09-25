@@ -21,6 +21,7 @@ export const EFFECTS = {
   cancel: 'ui_cancel.m4a',
   error: 'ui_error.m4a',
   log: 'habit_complete.m4a',
+  eat: 'monster_eat_apple.m4a',
   levelUp: 'level_up.m4a',
   evolve1: 'evolve_form1_to_2.m4a',
   evolve2: 'evolve_form2_to_3.m4a',

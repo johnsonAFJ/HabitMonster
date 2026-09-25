@@ -131,7 +131,14 @@ export function drawEgg(ctx, x = SPOT_X, floorY = FLOOR_Y) {
 }
 
 // A treat dropping into the monster's mouth, then a burst of crumbs.
-export const FEED_MS = 1200;
+//
+// Timed to monster_eat_apple, which runs 2.46s: the berry lands and scatters
+// early, then nothing is drawn for the rest. The animation keeps running
+// anyway, because that is what holds the monster in its happy pose while the
+// chewing is still audible.
+export const FEED_MS = 2400;
+const FEED_LANDS = 0.22;
+const FEED_CRUMBS = 0.42;
 
 const BERRY = '#c0392b';
 const BERRY_L = '#e0685a';
@@ -155,20 +162,21 @@ function drawBerry(ctx, x, y) {
 export function drawFeed(ctx, elapsed) {
   const t = elapsed / FEED_MS;
   if (t >= 1) return false;
-  const lands = 0.55;
-  if (t < lands) {
+  if (t < FEED_LANDS) {
     // Falling in, accelerating, drifting towards the mouth.
-    const p = t / lands;
+    const p = t / FEED_LANDS;
     const from = 14;
     drawBerry(ctx, SPOT_X + Math.round(10 * (1 - p)), Math.round(from + (MOUTH_Y - from) * p * p));
-  } else {
-    const p = (t - lands) / (1 - lands);
+  } else if (t < FEED_CRUMBS) {
+    const p = (t - FEED_LANDS) / (FEED_CRUMBS - FEED_LANDS);
     for (const [dx, dy] of [[-7, -2], [7, -3], [-4, 4], [5, 3], [0, -7]]) {
       const x = Math.round(SPOT_X + dx * (0.4 + p));
       const y = Math.round(MOUTH_Y + 3 + dy * (0.4 + p) - p * 4);
       px(ctx, p > 0.6 ? BERRY : BERRY_L, x, y, p > 0.7 ? 1 : 2, p > 0.7 ? 1 : 2);
     }
   }
+  // After the crumbs, nothing is drawn: it is still chewing, and holding the
+  // animation open keeps it looking pleased until the sound finishes.
   return true;
 }
 
