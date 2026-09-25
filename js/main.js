@@ -3,12 +3,12 @@ import {
   FORM_LABELS, FORM_LEVELS,
   dateKey, parseKey, monsterState, latestValue, currentStreak, furnitureAt,
   emptySave, chooseStarter, addHabit, logToday, undoToday, renameHabit,
-  deleteHabit, setStat, freeSlots, nameMonster,
+  deleteHabit, setStat, freeSlots, nameMonster, feedMonster, hasFedToday, FEED_XP,
 } from './monster.js';
 import { readSave, writeSave, saveBackup, readBackup } from './storage.js';
 import {
-  loadArt, drawMonster, drawEgg, drawCell, drawCheer, drawFurniture,
-  CELL, ROOM_W, ROOM_H, CHEER_MS, MOOD_NORMAL, MOOD_HAPPY, MOOD_WORN,
+  loadArt, drawMonster, drawEgg, drawCell, drawCheer, drawFurniture, drawFeed,
+  CELL, ROOM_W, ROOM_H, CHEER_MS, FEED_MS, MOOD_NORMAL, MOOD_HAPPY, MOOD_WORN,
 } from './art.js';
 import { play, unlock, isMuted, setMuted, setMusic } from './sound.js';
 
@@ -23,6 +23,7 @@ let save = readSave();
 let today = dateKey(new Date());
 let art = null;
 let cheerStart = null;   // when the sparkle burst began
+let feedStart = null;    // when the treat started falling
 let picking = false;     // the picker is open by choice, not because there is no monster
 
 const scene = document.getElementById('scene');
@@ -45,6 +46,14 @@ function drawScene(now = performance.now()) {
     drawMonster(ctx, art, state.species, state.form, moodFor(state));
   }
 
+  if (feedStart !== null) {
+    if (drawFeed(ctx, now - feedStart)) {
+      requestAnimationFrame(drawScene);
+      return;
+    }
+    feedStart = null;
+  }
+
   if (cheerStart !== null) {
     if (drawCheer(ctx, now - cheerStart)) {
       requestAnimationFrame(drawScene);
@@ -56,6 +65,8 @@ function drawScene(now = performance.now()) {
 }
 
 function moodFor(state) {
+  // Whatever else is true, it is pleased about being fed.
+  if (feedStart !== null) return MOOD_HAPPY;
   if (state.wornOut) return MOOD_WORN;
   return loggedToday() ? MOOD_HAPPY : MOOD_NORMAL;
 }
@@ -179,6 +190,13 @@ function renderStatus(state) {
 
   const rename = document.getElementById('rename-monster');
   rename.textContent = state.name ? 'Rename' : 'Give it a name';
+
+  // One treat a day. Hidden until it has hatched: there is no mouth yet.
+  const feed = document.getElementById('feed');
+  const fed = hasFedToday(save, today);
+  feed.hidden = !state.hatched;
+  feed.disabled = fed;
+  feed.textContent = fed ? 'Fed today' : `Feed (+${FEED_XP} XP)`;
 
   const fraction = state.levelNeeds ? Math.min(1, state.intoLevel / state.levelNeeds) : 0;
   const fill = document.getElementById('xp-fill');
@@ -406,6 +424,13 @@ function askName() {
 }
 
 document.getElementById('rename-monster').onclick = askName;
+
+document.getElementById('feed').onclick = () => {
+  if (hasFedToday(save, today)) return;
+  feedStart = performance.now();
+  play('confirm');
+  commit(feedMonster(save, save.activeMonster, today));
+};
 
 document.getElementById('change-starter').onclick = () => {
   play('tap');

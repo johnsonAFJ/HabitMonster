@@ -51,6 +51,13 @@ export const BREADTH_BONUS = 5;
 export const BREADTH_MIN_LEVEL = 5;
 export const MAX_DAY_XP = 40;
 
+// A treat, once a day. Deliberately small next to a day's habits, so the
+// monster still grows mostly because he did the things. It sits outside the
+// daily cap, or it would be worth nothing on exactly the days he did
+// everything, and it is not gated on having logged anything, or the one
+// button that might draw him in would be disabled when it is needed most.
+export const FEED_XP = 5;
+
 // Furniture for the room, one piece at each of these levels. An explicit list
 // rather than a rule, so nothing can claim a level grants an item that does
 // not exist. Every third level from 3, skipping 15 where the evolution lands.
@@ -159,6 +166,8 @@ export function eventSchedule() {
   for (let day = 1; !(top in earliest) && day <= 1000; day++) {
     const key = addDays(start, day - 1);
     for (const habit of save.habits) save = logToday(save, habit.id, key);
+    // Doing everything includes the daily treat.
+    save = feedMonster(save, save.activeMonster, key);
     const { level } = monsterState(save, key);
     for (let l = 2; l <= level; l++) if (!(l in earliest)) earliest[l] = day;
   }
@@ -227,6 +236,23 @@ export function statTotals(save, level = 1) {
   return totals;
 }
 
+// Treats are recorded per day, like habit logs, so the total is derived and
+// feeding twice in a day is impossible rather than merely discouraged.
+export function fedDays(save) {
+  return activeMonster(save)?.fed ?? {};
+}
+
+export function hasFedToday(save, today) {
+  return today in fedDays(save);
+}
+
+export function feedMonster(save, id, today) {
+  return {
+    ...save,
+    monsters: save.monsters.map((m) => (m.id === id ? { ...m, fed: { ...m.fed, [today]: true } } : m)),
+  };
+}
+
 export function activeMonster(save) {
   return save.monsters.find((m) => m.id === save.activeMonster) ?? null;
 }
@@ -239,7 +265,10 @@ export function hasHatched(save) {
 // Everything the screen needs in one object.
 export function monsterState(save, today) {
   const monster = activeMonster(save);
-  const { xp, health } = replay(save, today);
+  const { xp: fromHabits, health } = replay(save, today);
+  // Treats are added outside the replay: they earn a flat amount and touch
+  // nothing else, so there is no need to walk them day by day.
+  const xp = fromHabits + Object.keys(monster?.fed ?? {}).length * FEED_XP;
   const level = levelFromXp(xp);
   return {
     species: monster?.species ?? null,
@@ -405,7 +434,8 @@ export function validateSave(data) {
       typeof m.id === 'string' &&
       STARTERS.includes(m.species) &&
       DATE_KEY.test(m.chosenOn) &&
-      (m.name === undefined || (typeof m.name === 'string' && m.name.length <= MAX_NAME));
+      (m.name === undefined || (typeof m.name === 'string' && m.name.length <= MAX_NAME)) &&
+      (m.fed === undefined || validLogs(m.fed));
     // Saves from before experience became purely derived carry a levelFloor.
     // It is ignored rather than rejected, so an older backup still loads.
     if (!ok) throw new Error('A monster in the backup is malformed.');

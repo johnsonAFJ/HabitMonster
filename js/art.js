@@ -130,6 +130,48 @@ export function drawEgg(ctx, x = SPOT_X, floorY = FLOOR_Y) {
   }
 }
 
+// A treat dropping into the monster's mouth, then a burst of crumbs.
+export const FEED_MS = 1200;
+
+const BERRY = '#c0392b';
+const BERRY_L = '#e0685a';
+const BERRY_LEAF = '#5f9b3e';
+
+// Roughly where the mouth is on every form: the sprites differ in height but
+// all stand on the floor line, so this is measured up from the feet.
+const MOUTH_Y = FLOOR_Y - 42;
+
+function drawBerry(ctx, x, y) {
+  const halves = [2, 3, 4, 4, 4, 3, 2];
+  halves.forEach((half, row) => px(ctx, OUTLINE, x - half, y + row, half * 2, 1));
+  halves.forEach((half, row) => {
+    if (row === 0 || row === halves.length - 1) return;
+    px(ctx, row < 3 ? BERRY_L : BERRY, x - half + 1, y + row, half * 2 - 2, 1);
+  });
+  px(ctx, BERRY_LEAF, x - 1, y - 2, 3, 2);
+  px(ctx, OUTLINE, x - 1, y - 3, 3, 1);
+}
+
+export function drawFeed(ctx, elapsed) {
+  const t = elapsed / FEED_MS;
+  if (t >= 1) return false;
+  const lands = 0.55;
+  if (t < lands) {
+    // Falling in, accelerating, drifting towards the mouth.
+    const p = t / lands;
+    const from = 14;
+    drawBerry(ctx, SPOT_X + Math.round(10 * (1 - p)), Math.round(from + (MOUTH_Y - from) * p * p));
+  } else {
+    const p = (t - lands) / (1 - lands);
+    for (const [dx, dy] of [[-7, -2], [7, -3], [-4, 4], [5, 3], [0, -7]]) {
+      const x = Math.round(SPOT_X + dx * (0.4 + p));
+      const y = Math.round(MOUTH_Y + 3 + dy * (0.4 + p) - p * 4);
+      px(ctx, p > 0.6 ? BERRY : BERRY_L, x, y, p > 0.7 ? 1 : 2, p > 0.7 ? 1 : 2);
+    }
+  }
+  return true;
+}
+
 // Sparkles rising off the monster just after a habit is logged.
 export const CHEER_MS = 900;
 

@@ -6,6 +6,7 @@ import {
   addDays, replay, monsterState, statTotals,
   emptySave, chooseStarter, addHabit, logToday, undoToday, deleteHabit, nameMonster, MAX_NAME,
   setStat, currentStreak, hasHatched, validateSave,
+  feedMonster, hasFedToday, FEED_XP,
 } from '../js/monster.js';
 
 const DAY1 = '2026-01-01';
@@ -293,6 +294,39 @@ test('a backup keeps the name, and rejects one that is not text', () => {
 
   const bad = JSON.parse(JSON.stringify(named));
   bad.monsters[0].name = 42;
+  assert.throws(() => validateSave(bad), /monster in the backup is malformed/);
+});
+
+test('a treat is worth its experience, once a day', () => {
+  let save = logDays(saveWith(3), 1);
+  const before = monsterState(save, DAY1).xp;
+  // 30 base plus the health bonus. The breadth bonus is locked until level 5.
+  assert.equal(before, 35);
+
+  save = feedMonster(save, save.monsters[0].id, DAY1);
+  assert.equal(monsterState(save, DAY1).xp, before + FEED_XP, 'treats sit outside the cap');
+  assert.equal(hasFedToday(save, DAY1), true);
+
+  save = feedMonster(save, save.monsters[0].id, DAY1);
+  assert.equal(monsterState(save, DAY1).xp, before + FEED_XP, 'feeding twice in a day does nothing');
+});
+
+test('treats add up across days, and need no habits', () => {
+  // A monster with no habits at all still grows a little from treats.
+  let save = chooseStarter(emptySave(), 'embertail', DAY1, () => 0.5);
+  for (let d = 1; d <= 4; d++) save = feedMonster(save, save.monsters[0].id, day(d));
+  assert.equal(monsterState(save, day(4)).xp, 4 * FEED_XP);
+  assert.equal(hasFedToday(save, day(5)), false, 'a new day is a new treat');
+});
+
+test('a backup keeps the treats, and rejects malformed ones', () => {
+  const base = saveWith(1);
+  const fed = feedMonster(base, base.monsters[0].id, DAY1);
+  const back = validateSave(JSON.parse(JSON.stringify(fed)));
+  assert.equal(monsterState(back, DAY1).xp, FEED_XP);
+
+  const bad = JSON.parse(JSON.stringify(fed));
+  bad.monsters[0].fed = { 'not-a-date': true };
   assert.throws(() => validateSave(bad), /monster in the backup is malformed/);
 });
 

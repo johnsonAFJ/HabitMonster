@@ -136,6 +136,15 @@ h3 { font-size: 17px; }
 
 .manage-monster { display: flex; gap: 14px; margin: 6px 0 0; }
 
+.feed { margin-top: 10px; width: 100%; }
+.feed:disabled {
+  background: transparent;
+  color: var(--muted);
+  border-color: var(--line);
+  cursor: default;
+  filter: none;
+}
+
 /* ---- Stats ---- */
 
 .stats-panel {

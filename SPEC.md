@@ -60,6 +60,23 @@ instead.
 
 Today counts as it is earned, so the XP bar moves the moment he logs.
 
+### Treats
+
+One treat a day, worth 5 XP, from a button on the status strip. A berry drops
+in, the monster catches it, and crumbs scatter.
+
+- **Outside the 40 cap**, or it would be worth nothing on exactly the days he
+  did everything.
+- **Not gated on having logged anything.** On a day he has done nothing, the
+  one button that might draw him in should not be disabled.
+- **Does not restore health.** Health is the lapse signal; a tap should not
+  undo it.
+
+It is deliberately small next to a day's habits, because every other point of
+experience is earned by doing something real, and a treat is not. Fed days are
+recorded per day on the monster, like habit logs, so the total stays derived
+and feeding twice in a day is impossible rather than merely discouraged.
+
 ### Levels
 
 Level 1 to 2 costs 35 XP. Each level after costs 8 more: 35, 43, 51, 59...
@@ -284,7 +301,8 @@ Stored under the localStorage key `habit-monster`:
       "id": "m1a2b3c4",
       "species": "embertail",
       "chosenOn": "2026-09-20",
-      "name": "Sparky"
+      "name": "Sparky",
+      "fed": { "2026-09-25": true }
     }
   ],
   "activeMonster": "m1a2b3c4",
@@ -306,6 +324,8 @@ Stored under the localStorage key `habit-monster`:
 ```
 
 - `name` is optional. Without it the species name is used.
+- `fed` records the days a treat was given. Both are optional, so a save from
+  before either existed still loads.
 - `monsters` is an array holding exactly one entry today. The backpack becomes
   additive later — no migration, no risk to his history.
 - `slot` (0, 1 or 2) orders the habit cards.
