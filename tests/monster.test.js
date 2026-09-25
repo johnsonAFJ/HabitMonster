@@ -4,7 +4,7 @@ import {
   LEVEL_BASE, MAX_HEALTH, STARTERS, STAT_PER_LEVEL,
   levelCost, xpForLevel, levelFromXp, formForLevel, grantsItem,
   addDays, replay, monsterState, statTotals,
-  emptySave, chooseStarter, addHabit, logToday, undoToday, deleteHabit,
+  emptySave, chooseStarter, addHabit, logToday, undoToday, deleteHabit, nameMonster, MAX_NAME,
   setStat, currentStreak, hasHatched, validateSave,
 } from '../js/monster.js';
 
@@ -256,6 +256,44 @@ test('choosing a starter sets it active', () => {
   assert.equal(save.activeMonster, save.monsters[0].id);
   assert.throws(() => chooseStarter(emptySave(), 'pikachu', DAY1), /not one of the starters/);
   assert.equal(STARTERS.length, 3);
+});
+
+test('a monster can be named, and the name belongs to it', () => {
+  let save = saveWith(1);
+  assert.equal(monsterState(save, DAY1).name, null, 'no name to begin with');
+  save = nameMonster(save, save.monsters[0].id, '  Sparky  ');
+  assert.equal(monsterState(save, DAY1).name, 'Sparky', 'trimmed');
+  assert.equal(monsterState(save, DAY1).species, 'embertail', 'the species is still there');
+  // Names live on the monster, so each keeps its own once the backpack lands.
+  assert.equal(save.monsters[0].name, 'Sparky');
+});
+
+test('an empty name clears it back to the species', () => {
+  const base = saveWith(1);
+  const id = base.monsters[0].id;
+  const named = nameMonster(base, id, 'Sparky');
+  assert.equal(monsterState(named, DAY1).name, 'Sparky');
+
+  const cleared = nameMonster(named, id, '   ');
+  assert.equal(monsterState(cleared, DAY1).name, null);
+  assert.ok(!('name' in cleared.monsters[0]), 'the field goes away rather than sitting empty');
+});
+
+test('a very long name is cut to fit the strip', () => {
+  const base = saveWith(1);
+  const save = nameMonster(base, base.monsters[0].id, 'x'.repeat(50));
+  assert.equal(monsterState(save, DAY1).name.length, MAX_NAME);
+});
+
+test('a backup keeps the name, and rejects one that is not text', () => {
+  const base = saveWith(1);
+  const named = nameMonster(base, base.monsters[0].id, 'Sparky');
+  const back = validateSave(JSON.parse(JSON.stringify(named)));
+  assert.equal(monsterState(back, DAY1).name, 'Sparky');
+
+  const bad = JSON.parse(JSON.stringify(named));
+  bad.monsters[0].name = 42;
+  assert.throws(() => validateSave(bad), /monster in the backup is malformed/);
 });
 
 test('a fourth habit is refused', () => {

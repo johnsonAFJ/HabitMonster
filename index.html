@@ -43,7 +43,10 @@
 
       <div class="status" id="status">
         <div class="status-head">
-          <h2 id="monster-name">Egg</h2>
+          <div class="who">
+            <h2 id="monster-name">Egg</h2>
+            <p class="kind" id="kind"></p>
+          </div>
           <span class="level" id="level"></span>
         </div>
         <div class="xp" id="xp-track">
@@ -53,7 +56,10 @@
           <span class="xp-label" id="xp-label"></span>
           <span class="pips" id="health"></span>
         </div>
-        <p class="restart"><button type="button" class="link" id="change-starter">Pick a different one</button></p>
+        <p class="manage-monster">
+          <button type="button" class="link" id="rename-monster">Give it a name</button>
+          <button type="button" class="link" id="change-starter">Pick a different one</button>
+        </p>
       </div>
 
       <section class="stats-panel" id="stats-panel" hidden>

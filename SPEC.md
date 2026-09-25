@@ -19,10 +19,20 @@ per-plant health are being replaced by the monster rules below.
 - The other two starters unlock at level 15. Swapping between them is
   deferred, but the save file is already shaped for it.
 
-### Hatching
+### Hatching, and its name
 
 He picks a starter immediately — that choice is the hook, not a reward. It
 stays an egg until the first habit is logged, then hatches into what he picked.
+Right after it hatches he is asked what to call it, which is a far better
+moment than a settings field. Skipping keeps the species name.
+
+The name can be changed any time from the status strip, and clearing it falls
+back to the species name. Names belong to the **monster**, not the save, so
+when the backpack arrives each of the three keeps its own.
+
+The species name never disappears: his son invented these creatures, so
+`Bubbletide` stays on show under `Sparky`. It is only repeated in the subtitle
+when the name differs from it, so nothing ever says it twice.
 
 ## Experience
 
@@ -236,10 +246,21 @@ interacted with the page, so the first tap is what starts it.
 
 Room on top, one status strip beneath it, habit cards below that.
 
-The strip shows the monster's name, its level, health as 5 pips, and an XP bar
-that runs **red when empty and green as it fills**, labelled with progress
-**within the current level** — `80 / 139`, not a running total. Concrete
-numbers matter: a 7-year-old can read *59 more* and decide to go do the thing.
+The strip shows the monster's name, with its species and form small
+underneath, the level on the right, health as 5 pips, and an XP bar that runs
+**red when empty and green as it fills**, labelled with progress **within the
+current level** — `80 / 139`, not a running total. Concrete numbers matter: a
+7-year-old can read *59 more* and decide to go do the thing.
+
+```
+Sparky                                  Level 5
+Bubbletide · Adolescent
+[================================]
+22 / 67 XP                          (5 pips)
+```
+
+The form sits with the species rather than beside the level, so it is not
+written twice.
 
 ## Habits
 
@@ -262,7 +283,8 @@ Stored under the localStorage key `habit-monster`:
     {
       "id": "m1a2b3c4",
       "species": "embertail",
-      "chosenOn": "2026-09-20"
+      "chosenOn": "2026-09-20",
+      "name": "Sparky"
     }
   ],
   "activeMonster": "m1a2b3c4",
@@ -283,6 +305,7 @@ Stored under the localStorage key `habit-monster`:
 }
 ```
 
+- `name` is optional. Without it the species name is used.
 - `monsters` is an array holding exactly one entry today. The backpack becomes
   additive later — no migration, no risk to his history.
 - `slot` (0, 1 or 2) orders the habit cards.

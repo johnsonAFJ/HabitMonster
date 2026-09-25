@@ -3,7 +3,7 @@ import {
   FORM_LABELS, FORM_LEVELS,
   dateKey, parseKey, monsterState, latestValue, currentStreak, furnitureAt,
   emptySave, chooseStarter, addHabit, logToday, undoToday, renameHabit,
-  deleteHabit, setStat, freeSlots,
+  deleteHabit, setStat, freeSlots, nameMonster,
 } from './monster.js';
 import { readSave, writeSave, saveBackup, readBackup } from './storage.js';
 import {
@@ -100,6 +100,9 @@ function commit(next, { cheer = false } = {}) {
     announce(`${STARTER_LABELS[after.species]} hatched!`);
     // No hatch sound was made, so the first evolution fanfare stands in.
     play('evolve1');
+    // Right after it comes out of the egg is the moment to name it, once the
+    // fanfare has had a second to play.
+    setTimeout(askName, 1500);
   } else if (after.form > before.form) {
     announce(`${STARTER_LABELS[after.species]} evolved into its ${FORM_LABELS[after.form].toLowerCase()} form!`);
     play(after.form === 2 ? 'evolve2' : 'evolve1');
@@ -164,10 +167,18 @@ function renderPicker() {
 // ---- Status strip ----
 
 function renderStatus(state) {
-  document.getElementById('monster-name').textContent =
-    state.hatched ? STARTER_LABELS[state.species] : 'Egg';
-  document.getElementById('level').textContent =
-    state.hatched ? `Level ${state.level} · ${FORM_LABELS[state.form]}` : 'Not hatched yet';
+  const species = state.species ? STARTER_LABELS[state.species] : null;
+  // His name on top, what it is underneath. The species is only repeated in
+  // the subtitle when the name differs from it, so nothing says it twice.
+  document.getElementById('monster-name').textContent = state.name ?? species ?? 'Egg';
+  const kind = [];
+  if (state.name && species && state.name !== species) kind.push(species);
+  kind.push(state.hatched ? FORM_LABELS[state.form] : 'Not hatched yet');
+  document.getElementById('kind').textContent = kind.join(' · ');
+  document.getElementById('level').textContent = state.hatched ? `Level ${state.level}` : '';
+
+  const rename = document.getElementById('rename-monster');
+  rename.textContent = state.name ? 'Rename' : 'Give it a name';
 
   const fraction = state.levelNeeds ? Math.min(1, state.intoLevel / state.levelNeeds) : 0;
   const fill = document.getElementById('xp-fill');
@@ -188,7 +199,7 @@ function renderStatus(state) {
   health.setAttribute('aria-label', health.title);
 
   // Switching is free until the egg hatches, and impossible after.
-  document.querySelector('.restart').hidden = state.hatched;
+  document.getElementById('change-starter').hidden = state.hatched;
 }
 
 function renderStats(state) {
@@ -383,6 +394,18 @@ document.getElementById('mute').onclick = () => {
 // so the first tap anywhere is what actually starts it.
 document.addEventListener('pointerdown', unlock, { once: true });
 document.addEventListener('keydown', unlock, { once: true });
+
+// An empty answer leaves it with the species name, which is a fine answer.
+function askName() {
+  const state = monsterState(save, today);
+  if (!state.species) return;
+  const given = prompt('What do you want to call it?', state.name ?? '');
+  if (given === null) return;
+  play('confirm');
+  commit(nameMonster(save, save.activeMonster, given));
+}
+
+document.getElementById('rename-monster').onclick = askName;
 
 document.getElementById('change-starter').onclick = () => {
   play('tap');

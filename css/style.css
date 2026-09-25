@@ -93,6 +93,9 @@ h3 { font-size: 17px; }
   flex-wrap: wrap;
 }
 .level { font-family: var(--pixel); color: var(--muted); font-size: 15px; }
+.who { min-width: 0; }
+/* Species and form, under the name he gave it. */
+.kind { margin: 0; color: var(--muted); font-size: 13px; }
 
 .xp {
   margin-top: 8px;
@@ -131,7 +134,7 @@ h3 { font-size: 17px; }
 }
 .pip.full { background: var(--warn); }
 
-.restart { margin: 6px 0 0; }
+.manage-monster { display: flex; gap: 14px; margin: 6px 0 0; }
 
 /* ---- Stats ---- */
 

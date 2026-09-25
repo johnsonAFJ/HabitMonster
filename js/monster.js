@@ -10,6 +10,7 @@
 // and costs nothing, because a day never logged never earned anything.
 
 export const MAX_HABITS = 3;
+export const MAX_NAME = 16;
 export const SAVE_VERSION = 2;
 
 export const STARTERS = ['embertail', 'voltectra', 'bubbletide'];
@@ -242,6 +243,9 @@ export function monsterState(save, today) {
   const level = levelFromXp(xp);
   return {
     species: monster?.species ?? null,
+    // The name he gave it, if any. The species name is the fallback, and
+    // stays on show underneath either way: he invented these creatures.
+    name: monster?.name ?? null,
     hatched: hasHatched(save),
     xp,
     level,
@@ -275,6 +279,23 @@ export function chooseStarter(save, species, today, random = Math.random) {
   if (!STARTERS.includes(species)) throw new Error(`"${species}" is not one of the starters.`);
   const monster = { id: newId('m', random), species, chosenOn: today };
   return { ...save, monsters: [...save.monsters, monster], activeMonster: monster.id };
+}
+
+// Names belong to the monster, not the save, so when the backpack arrives
+// each of the three keeps its own. An empty name clears it back to the
+// species name.
+export function nameMonster(save, id, name) {
+  const clean = String(name ?? '').trim().slice(0, MAX_NAME);
+  return {
+    ...save,
+    monsters: save.monsters.map((m) => {
+      if (m.id !== id) return m;
+      const next = { ...m };
+      if (clean) next.name = clean;
+      else delete next.name;
+      return next;
+    }),
+  };
 }
 
 export function freeSlots(save) {
@@ -383,7 +404,8 @@ export function validateSave(data) {
     const ok =
       typeof m.id === 'string' &&
       STARTERS.includes(m.species) &&
-      DATE_KEY.test(m.chosenOn);
+      DATE_KEY.test(m.chosenOn) &&
+      (m.name === undefined || (typeof m.name === 'string' && m.name.length <= MAX_NAME));
     // Saves from before experience became purely derived carry a levelFloor.
     // It is ignored rather than rejected, so an older backup still loads.
     if (!ok) throw new Error('A monster in the backup is malformed.');
