@@ -29,6 +29,12 @@ export const STAT_LABELS = {
 
 export const MAX_HEALTH = 5;
 
+// Every level gained raises every stat by this much, on top of the point a
+// stat gets each time its habit is logged. It keeps a stat whose habit does
+// not exist from sitting at zero forever, and gives every level something
+// visible to do, not just the levels that bring furniture.
+export const STAT_PER_LEVEL = 1;
+
 // The level at which each form begins. Index into this is the form number.
 export const FORM_LEVELS = [1, 5, 15];
 export const FORM_LABELS = ['Hatchling', 'Adolescent', 'Full grown'];
@@ -207,8 +213,12 @@ export function replay(save, today) {
   return { xp, health };
 }
 
-export function statTotals(save) {
-  const totals = Object.fromEntries(STATS.map((s) => [s, 0]));
+// Stats are the levels gained plus a point for each day the habit that
+// trains them was logged. Changing a habit's stat moves its whole history,
+// since nothing is stored per day: that is what makes fixing a mistake work.
+export function statTotals(save, level = 1) {
+  const fromLevels = (level - 1) * STAT_PER_LEVEL;
+  const totals = Object.fromEntries(STATS.map((s) => [s, fromLevels]));
   for (const habit of allHabits(save)) {
     if (!STATS.includes(habit.stat)) continue;
     totals[habit.stat] += Object.keys(habit.logs).length;
@@ -240,7 +250,7 @@ export function monsterState(save, today) {
     levelNeeds: levelCost(level),
     health,
     wornOut: health === 0,
-    stats: statTotals(save),
+    stats: statTotals(save, level),
   };
 }
 

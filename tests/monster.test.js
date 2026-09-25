@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  LEVEL_BASE, MAX_HEALTH, STARTERS,
+  LEVEL_BASE, MAX_HEALTH, STARTERS, STAT_PER_LEVEL,
   levelCost, xpForLevel, levelFromXp, formForLevel, grantsItem,
   addDays, replay, monsterState, statTotals,
   emptySave, chooseStarter, addHabit, logToday, undoToday, deleteHabit,
@@ -212,6 +212,29 @@ test('a habit with no stat yet contributes nothing', () => {
   assert.deepEqual(statTotals(save), { strength: 0, speed: 0, wisdom: 0, charisma: 0 });
   const named = setStat(save, save.habits[0].id, 'charisma');
   assert.equal(statTotals(named).charisma, 3, 'the back history counts once a stat is picked');
+});
+
+test('every level gained raises every stat', () => {
+  // Three habits logged for five days: enough for a few levels.
+  let save = saveWith(3, ['wisdom', 'speed', 'speed']);
+  save = logDays(save, 5);
+  const state = monsterState(save, day(5));
+  const fromLevels = (state.level - 1) * STAT_PER_LEVEL;
+  assert.ok(state.level > 1, 'a few levels were gained');
+  assert.equal(state.stats.strength, fromLevels, 'a stat with no habit still climbs');
+  assert.ok(state.stats.strength > 0, 'and so never sits at zero forever');
+  assert.equal(state.stats.speed, fromLevels + 10, 'two habits at five days each');
+  assert.equal(state.stats.wisdom, fromLevels + 5);
+});
+
+test('changing a stat moves the habit history with it', () => {
+  // The fix for picking the wrong stat: it corrects the record rather than
+  // leaving half the days filed under the mistake.
+  let save = logDays(saveWith(1, ['speed']), 4);
+  assert.equal(statTotals(save).speed, 4);
+  save = setStat(save, save.habits[0].id, 'strength');
+  assert.equal(statTotals(save).speed, 0, 'the old stat gives the days back');
+  assert.equal(statTotals(save).strength, 4, 'and the new one takes them');
 });
 
 test('setStat rejects a stat that does not exist', () => {

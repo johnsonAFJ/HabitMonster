@@ -107,19 +107,29 @@ the same pressure with the opposite emotional sign.
 
 ## Stats
 
-Four stats: **Strength**, **Speed**, **Wisdom**, **Charisma**. Each habit
-trains exactly one, picked from that list when the habit is created. Logging
-the habit raises its stat by 1. Stats only ever go up.
+Four stats: **Strength**, **Speed**, **Wisdom**, **Charisma**. Each is:
 
-Read books to Wisdom, go for a walk to Speed, brush teeth to Charisma.
+- **+1 for every level gained**, so no stat sits at zero because its habit
+  does not exist, and every level does something visible rather than only the
+  levels that bring furniture.
+- **+1 for each day the habit that trains it was logged.**
 
-Stats are purely descriptive for now — a visible record that each habit did
-something. Making them mechanical is a much better problem to have at level 20
-than a system to build at level 1.
+Each habit trains exactly one stat, picked from that list. Read books to
+Wisdom, go for a walk to Speed, brush teeth to Charisma. The habit-driven part
+still dominates over time, so the gaps between stats say what he actually does.
 
-Habits created before level 5 are asked for their stat at the first evolution
-instead, since assigning Wisdom on day one, before stats appear anywhere on
-screen, is a confusing extra step.
+Stats are purely descriptive. Nothing keys off them, and making them
+mechanical is a much better problem to have at level 20 than a system to build
+at level 1.
+
+The stat is **always changeable** from the card. Nothing keys off stats, so
+there is nothing to protect by making the choice final, and a wrong one is
+otherwise a label he looks at every day for months. Changing it moves the
+habit's **whole history** to the new stat, since nothing is stored per day:
+that is what makes it a fix rather than a half-correction.
+
+Stats appear with the first evolution, not on day one when they would mean
+nothing, so habits made before level 5 simply have none until then.
 
 A fifth stat (Heart, or Courage) can be appended later. Growing the list is
 safe; removing one is not, since saved habits could already point at it.

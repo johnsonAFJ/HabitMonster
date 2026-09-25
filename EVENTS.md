@@ -27,6 +27,9 @@ bottom of the app. It shows which of these have happened and what's next.
   rules, not calculated separately.
 - **Typical** assumes about 28 XP a day.
 
+**Every** level also raises every stat by 1, so the levels
+between the ones listed here are not empty.
+
 ## If something didn't happen
 
 An event happens the moment its level is reached. If the level on screen is

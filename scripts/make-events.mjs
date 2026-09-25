@@ -7,7 +7,7 @@
 
 import { writeFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
-import { eventSchedule, TYPICAL_DAY_XP } from '../js/monster.js';
+import { eventSchedule, TYPICAL_DAY_XP, STAT_PER_LEVEL } from '../js/monster.js';
 
 export function eventsMarkdown() {
   const rows = eventSchedule().map((e) => {
@@ -33,6 +33,9 @@ ${rows.join('\n')}
   breadth bonus counts. It is found by playing it out through the game's own
   rules, not calculated separately.
 - **Typical** assumes about ${TYPICAL_DAY_XP} XP a day.
+
+**Every** level also raises every stat by ${STAT_PER_LEVEL}, so the levels
+between the ones listed here are not empty.
 
 ## If something didn't happen
 

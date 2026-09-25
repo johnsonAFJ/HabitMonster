@@ -175,13 +175,21 @@ h3 { font-size: 17px; }
 }
 .card p { margin: 0; }
 .meta { color: var(--muted); font-size: 13px; }
-.trains { font-family: var(--pixel); font-size: 14px; color: var(--accent); }
+.trains {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  font-family: var(--pixel);
+  font-size: 14px;
+  color: var(--accent);
+}
+.trains span { flex: none; }
+.trains select { flex: 1; min-width: 0; font-size: 14px; padding: 4px 6px; }
 
 .card.empty { border-style: dashed; justify-content: center; }
 .hint { color: var(--muted); text-align: center; }
 
-.stat-pick { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; }
-.stat-pick .hint { text-align: left; font-size: 13px; }
 
 /* ---- The picker ---- */
 

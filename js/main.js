@@ -205,16 +205,24 @@ function renderStats(state) {
 
 // ---- Habit cards ----
 
-function statPicker(habit, state) {
-  // A habit made before the first evolution is asked what it trains once
-  // stats exist, rather than on day one when they mean nothing.
-  if (habit.stat || state.level < FORM_LEVELS[1]) return null;
-  const select = el('select', { ariaLabel: `What ${habit.name} trains` },
-    el('option', { value: '', textContent: 'Pick a stat…' }),
+// What the habit trains, always changeable. A wrong stat is otherwise a label
+// he would look at every day for months, and nothing keys off stats, so there
+// is nothing to protect by making the choice final. Changing one moves the
+// habit's whole history to the new stat.
+function statControl(habit, state) {
+  // Stats appear with the first evolution, not on day one when they mean
+  // nothing, so before that a habit simply has none.
+  if (state.level < FORM_LEVELS[1]) return null;
+  const select = el('select', { className: 'stat-select', ariaLabel: `What ${habit.name} trains` },
+    el('option', { value: '', textContent: 'Pick one…' }),
     ...STATS.map((s) => el('option', { value: s, textContent: STAT_LABELS[s] })));
-  select.onchange = () => { if (select.value) commit(setStat(save, habit.id, select.value)); };
-  return el('div', { className: 'stat-pick' },
-    el('p', { className: 'hint', textContent: 'What does this train?' }), select);
+  select.value = habit.stat ?? '';
+  select.onchange = () => {
+    if (!select.value) return;
+    play('confirm');
+    commit(setStat(save, habit.id, select.value));
+  };
+  return el('label', { className: 'trains' }, el('span', { textContent: 'Trains' }), select);
 }
 
 function habitCard(habit, state) {
@@ -263,12 +271,11 @@ function habitCard(habit, state) {
 
   return el('article', { className: 'card' },
     el('h2', { textContent: habit.name }),
-    habit.stat ? el('p', { className: 'trains', textContent: `Trains ${STAT_LABELS[habit.stat]}` }) : null,
     el('p', { className: 'meta', textContent: `Streak ${streak} · ${total} day${total === 1 ? '' : 's'}` }),
     latest && latest.day !== today
       ? el('p', { className: 'meta', textContent: `Last: ${formatValue(habit, latest.value)} on ${shortDate(latest.day)}` })
       : null,
-    statPicker(habit, state),
+    statControl(habit, state),
     action,
     el('div', { className: 'manage' }, button('Rename', rename, 'link'), button('Delete', remove, 'link')));
 }
