@@ -8,9 +8,16 @@
   --accent-ink: #ffffff;
   --warn: #b0562e;
   --pixel: 'Pixelify Sans', ui-monospace, monospace;
+  /* Numbers only ever render in this: the pixel font's digits are too easy
+     to misread, and every number here is one a 7-year-old acts on. */
+  --figures: 600 var(--size, 15px)/1.2 system-ui, -apple-system, sans-serif;
 }
 
 * { box-sizing: border-box; }
+
+/* An explicit `display` in a rule below beats the browser's own [hidden]
+   styling, so anything flex or grid would stay on screen when hidden. */
+[hidden] { display: none !important; }
 
 body {
   margin: 0;
@@ -92,7 +99,12 @@ h3 { font-size: 17px; }
   gap: 10px;
   flex-wrap: wrap;
 }
-.level { font-family: var(--pixel); color: var(--muted); font-size: 15px; }
+.level {
+  --size: 15px;
+  font: var(--figures);
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
 .who { min-width: 0; }
 /* Species and form, under the name he gave it. */
 .kind { margin: 0; color: var(--muted); font-size: 13px; }
@@ -122,7 +134,11 @@ h3 { font-size: 17px; }
   gap: 10px;
   margin-top: 6px;
 }
-.xp-label { font-family: var(--pixel); font-size: 14px; }
+.xp-label {
+  --size: 14px;
+  font: var(--figures);
+  font-variant-numeric: tabular-nums;
+}
 
 .pips { display: inline-flex; gap: 4px; }
 .pip {
@@ -135,6 +151,14 @@ h3 { font-size: 17px; }
 .pip.full { background: var(--warn); }
 
 .manage-monster { display: flex; gap: 14px; margin: 6px 0 0; }
+
+.rename-row {
+  display: flex;
+  gap: 6px;
+  margin: 8px 0;
+}
+.rename-row input { flex: 1; min-width: 0; }
+.rename-row button { white-space: nowrap; padding: 6px 10px; }
 
 .feed { margin-top: 10px; width: 100%; }
 .feed:disabled {
@@ -163,8 +187,9 @@ h3 { font-size: 17px; }
 .stat-list dt { color: var(--muted); font-size: 13px; }
 .stat-list dd {
   margin: 0;
-  font-family: var(--pixel);
-  font-size: 20px;
+  --size: 20px;
+  font: var(--figures);
+  font-variant-numeric: tabular-nums;
 }
 
 /* ---- Habit cards ---- */
@@ -192,8 +217,8 @@ h3 { font-size: 17px; }
   align-items: center;
   gap: 8px;
   margin-top: 6px;
-  font-family: var(--pixel);
   font-size: 14px;
+  font-weight: 600;
   color: var(--accent);
 }
 .trains span { flex: none; }
@@ -294,7 +319,8 @@ input, select {
   align-items: center;
   justify-content: space-between;
   gap: 6px;
-  font-family: var(--pixel);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
   color: var(--accent);
 }
 .manage { display: flex; gap: 12px; margin-top: auto; padding-top: 8px; }

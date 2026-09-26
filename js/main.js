@@ -3,7 +3,7 @@ import {
   FORM_LABELS, FORM_LEVELS,
   dateKey, parseKey, monsterState, latestValue, currentStreak, furnitureAt,
   emptySave, chooseStarter, addHabit, logToday, undoToday, renameHabit,
-  deleteHabit, setStat, freeSlots, nameMonster, feedMonster, hasFedToday, FEED_XP,
+  deleteHabit, setStat, freeSlots, nameMonster, feedMonster, hasFedToday,
 } from './monster.js';
 import { readSave, writeSave, saveBackup, readBackup } from './storage.js';
 import {
@@ -24,6 +24,8 @@ let today = dateKey(new Date());
 let art = null;
 let cheerStart = null;   // when the sparkle burst began
 let feedStart = null;    // when the treat started falling
+let naming = false;      // the monster's name is being typed
+let renamingHabit = null; // id of the habit whose name is being typed
 let picking = false;     // the picker is open by choice, not because there is no monster
 
 const scene = document.getElementById('scene');
@@ -196,12 +198,18 @@ function renderStatus(state) {
   const rename = document.getElementById('rename-monster');
   rename.textContent = state.name ? 'Rename' : 'Give it a name';
 
+  const form = document.getElementById('name-form');
+  form.hidden = !naming;
+  document.querySelector('.manage-monster').hidden = naming;
+  if (naming) document.getElementById('name-input').value = state.name ?? '';
+
   // One treat a day. Hidden until it has hatched: there is no mouth yet.
   const feed = document.getElementById('feed');
   const fed = hasFedToday(save, today);
   feed.hidden = !state.hatched;
   feed.disabled = fed;
-  feed.textContent = fed ? 'Fed today' : `Feed (+${FEED_XP} XP)`;
+  // No digits in the label: the pixel font's numbers are hard to read.
+  feed.textContent = fed ? 'Fed today' : 'Feed him a treat';
 
   const fraction = state.levelNeeds ? Math.min(1, state.intoLevel / state.levelNeeds) : 0;
   const fill = document.getElementById('xp-fill');
@@ -259,6 +267,26 @@ function statControl(habit, state) {
   return el('label', { className: 'trains' }, el('span', { textContent: 'Trains' }), select);
 }
 
+// The habit's name, typed in place. Same reason as the monster's: a prompt()
+// announces the site's address before the question.
+function renameForm(habit) {
+  const input = el('input', { type: 'text', value: habit.name, maxLength: 40, ariaLabel: 'Habit name' });
+  const form = el('form', {
+    className: 'rename-row',
+    onsubmit: (e) => {
+      e.preventDefault();
+      if (!input.value.trim()) return;
+      renamingHabit = null;
+      play('confirm');
+      commit(renameHabit(save, habit.id, input.value));
+    },
+  }, input, el('button', { type: 'submit', textContent: 'Save' }),
+     button('Cancel', () => { renamingHabit = null; render(); }, 'ghost'));
+  // The card is rebuilt on every render, so focus has to wait for it to land.
+  setTimeout(() => { input.focus(); input.select(); }, 0);
+  return form;
+}
+
 function habitCard(habit, state) {
   const done = today in habit.logs;
   const streak = currentStreak(habit, today);
@@ -293,8 +321,8 @@ function habitCard(habit, state) {
   }
 
   const rename = () => {
-    const name = prompt('Rename habit', habit.name);
-    if (name && name.trim()) commit(renameHabit(save, habit.id, name));
+    renamingHabit = habit.id;
+    render();
   };
   const remove = () => {
     if (confirm(`Delete "${habit.name}"? The card goes away, but the experience it earned stays.`)) {
@@ -304,7 +332,7 @@ function habitCard(habit, state) {
   };
 
   return el('article', { className: 'card' },
-    el('h2', { textContent: habit.name }),
+    renamingHabit === habit.id ? renameForm(habit) : el('h2', { textContent: habit.name }),
     el('p', { className: 'meta', textContent: `Streak ${streak} · ${total} day${total === 1 ? '' : 's'}` }),
     latest && latest.day !== today
       ? el('p', { className: 'meta', textContent: `Last: ${formatValue(habit, latest.value)} on ${shortDate(latest.day)}` })
@@ -418,17 +446,30 @@ document.getElementById('mute').onclick = () => {
 document.addEventListener('pointerdown', unlock, { once: true });
 document.addEventListener('keydown', unlock, { once: true });
 
-// An empty answer leaves it with the species name, which is a fine answer.
+// Opens the inline field. Leaving it empty keeps the species name, which is
+// a fine answer.
 function askName() {
-  const state = monsterState(save, today);
-  if (!state.species) return;
-  const given = prompt('What do you want to call it?', state.name ?? '');
-  if (given === null) return;
-  play('confirm');
-  commit(nameMonster(save, save.activeMonster, given));
+  if (!monsterState(save, today).species) return;
+  naming = true;
+  render();
+  const input = document.getElementById('name-input');
+  input.focus();
+  input.select();
+}
+
+function stopNaming() {
+  naming = false;
+  render();
 }
 
 document.getElementById('rename-monster').onclick = askName;
+document.getElementById('name-cancel').onclick = stopNaming;
+document.getElementById('name-form').onsubmit = (e) => {
+  e.preventDefault();
+  naming = false;
+  play('confirm');
+  commit(nameMonster(save, save.activeMonster, document.getElementById('name-input').value));
+};
 
 document.getElementById('feed').onclick = () => {
   if (hasFedToday(save, today)) return;

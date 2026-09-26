@@ -49,6 +49,16 @@
           </div>
           <span class="level" id="level"></span>
         </div>
+        <!-- Naming happens here rather than in a prompt(): browsers prefix
+             those with the site's address, which is no way to ask a child
+             what to call his monster. -->
+        <form class="rename-row" id="name-form" hidden>
+          <input type="text" id="name-input" maxlength="16" autocomplete="off"
+                 placeholder="What do you want to call it?" aria-label="Monster name">
+          <button type="submit">Save</button>
+          <button type="button" class="ghost" id="name-cancel">Cancel</button>
+        </form>
+
         <div class="xp" id="xp-track">
           <div class="xp-fill" id="xp-fill"></div>
         </div>

@@ -267,6 +267,28 @@ interacted with the page, so the first tap is what starts it.
 
 ## The screen
 
+### Fonts
+
+The pixel font is for **names and headings only**: the app title, the
+monster's name, card titles, section headings, buttons. Anything with a digit
+in it uses the system font at weight 600 with tabular figures, because
+Pixelify Sans makes 5 and S, and 3 and 8, hard to tell apart — and every
+number on screen is one a 7-year-old reads and acts on. The same reason the
+treat button says "Feed him a treat" rather than naming the XP.
+
+### No browser dialogs
+
+Naming the monster and renaming a habit happen in a field on the page, not in
+`prompt()`. Browsers prefix those with the site's address — *johnsonafj.github.io
+says…* — which is no way to ask a child what to call his monster, and the text
+cannot be changed.
+
+Deleting a habit and replacing a save on import still use `confirm()`. Those
+are rare, deliberate, destructive actions where a dialog that is obviously the
+browser's own is a feature rather than a wart.
+
+
+
 Room on top, one status strip beneath it, habit cards below that.
 
 The strip shows the monster's name, with its species and form small
