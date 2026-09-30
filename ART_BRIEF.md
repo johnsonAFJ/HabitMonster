@@ -168,6 +168,27 @@ any edge.
 
 ---
 
+# DELIVERABLE 4: LABELED PREVIEW (for checking only)
+
+A separate image of each sprite sheet scaled up 4x, with thin grid lines
+between cells and row and column numbers along the edges. Keep the real PNGs
+clean — no grid lines or labels in the files the app uses.
+
+---
+
+# Checklist before accepting the files
+
+- [ ] Sprite sheet exactly 192 x 192, cells exactly 64 x 64, 3 x 3
+- [ ] Feet on y 63 of each cell, centered x 31-32, identical across each row
+- [ ] All three forms read as the same animal, with the same name
+- [ ] Form 3 is aggressive but still friendly to a child
+- [ ] The HAPPY cell reads as joyful at a glance, in all three forms
+- [ ] The WORN OUT cell reads as tired, not sick or dead
+- [ ] No semi-transparent pixels anywhere — check the outline especially
+- [ ] `room.png` exactly 256 x 160, floor line at y 128
+- [ ] The box x 96-159, y 64-127 in `room.png` is clear
+- [ ] `icon.png` exactly 32 x 32
+
 # DELIVERABLE 5: FURNITURE (optional, order any time)
 
 The room fills with furniture as the player levels up. The game already draws
@@ -204,23 +225,77 @@ After dropping a file in, add its id to `FURNITURE_ART` in `js/art.js`, then
 run `npm run check-art`. It fails if a PNG is there but not listed, since the
 game would never load it.
 
-# DELIVERABLE 4: LABELED PREVIEW (for checking only)
+# DELIVERABLE 6: MOVEMENT FRAMES (optional, order in stages)
 
-A separate image of each sprite sheet scaled up 4x, with thin grid lines
-between cells and row and column numbers along the edges. Keep the real PNGs
-clean — no grid lines or labels in the files the app uses.
+The monster wanders the room and dances when poked. That works today with
+only the three frames above, by hopping and mirroring in code — but it is one
+pose doing all the work. These extra frames replace the fake with the real
+thing.
 
----
+**The sheet grows to the right. Its width says which frames exist**, so these
+can be ordered in stages and the app uses whatever it finds:
 
-# Checklist before accepting the files
+| Sheet size | Columns | Adds |
+| --- | --- | --- |
+| 192 x 192 | 0-2 | what exists now |
+| 256 x 192 | 0-3 | blink |
+| 384 x 192 | 0-5 | blink, dance |
+| 512 x 192 | 0-7 | blink, dance, walk |
 
-- [ ] Sprite sheet exactly 192 x 192, cells exactly 64 x 64, 3 x 3
-- [ ] Feet on y 63 of each cell, centered x 31-32, identical across each row
-- [ ] All three forms read as the same animal, with the same name
-- [ ] Form 3 is aggressive but still friendly to a child
-- [ ] The HAPPY cell reads as joyful at a glance, in all three forms
-- [ ] The WORN OUT cell reads as tired, not sick or dead
-- [ ] No semi-transparent pixels anywhere — check the outline especially
-- [ ] `room.png` exactly 256 x 160, floor line at y 128
-- [ ] The box x 96-159, y 64-127 in `room.png` is clear
-- [ ] `icon.png` exactly 32 x 32
+Everything else is unchanged: 64 x 64 cells, 3 rows for the 3 forms,
+transparent background, same palette and outline.
+
+    Column 0: normal      (exists)
+    Column 1: happy       (exists)
+    Column 2: worn out    (exists)
+    Column 3: BLINK
+    Column 4: WALK 1
+    Column 5: WALK 2
+    Column 6: DANCE 1
+    Column 7: DANCE 2
+
+## THE RULE THAT MATTERS MOST
+
+**Every cell keeps its feet on the bottom row, y 63, centred on x 31-32 —
+including the dance and walk frames.** All vertical movement, hopping and
+bouncing is done in code. A frame that lifts the creature off the ground
+inside its own cell will look like it is floating, because the code is
+already moving it up and down underneath.
+
+## Column 3: BLINK
+
+The normal pose with its eyes closed, and nothing else changed at all. The
+app shows it for a fraction of a second every few seconds.
+
+This is the single best frame per drawing in the whole list: right now the
+monster is perfectly still whenever it is standing, which reads as a picture
+rather than a creature. One frame fixes that.
+
+## Columns 4 and 5: WALK
+
+A two frame walk cycle, alternating as it crosses the room.
+
+    Walk 1: one foot forward, the other back, body at its lowest
+    Walk 2: the other foot forward, body raised 1 or 2 px, tail or ears trailing
+
+Both keep their feet on y 63. The difference between them should be readable
+at a glance — at this size, a subtle cycle reads as nothing at all.
+
+## Columns 6 and 7: DANCE
+
+Two poses the app alternates a few times a second while it dances, on top of
+a bounce it adds in code.
+
+    Dance 1: leaning one way, arms or ears up on that side, delighted
+    Dance 2: mirrored energy the other way, a different arm position
+
+Not a mirror image of each other — hand-drawn both ways, so it reads as
+dancing and not as a sprite being flipped. Faces as happy as column 1, or
+happier. This is the payoff for a child poking the screen, so it should be
+worth poking.
+
+## Worth having, and not art
+
+A short **happy chirp or squeak** for the poke, the way `monster_eat_apple`
+sells the treat. The poke currently borrows `ui_tap`, which is a menu blip.
+There is still no **hatch sound** either; it borrows the evolution fanfare.
