@@ -49,6 +49,7 @@ const REDUCED_MOTION = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const WANDER_MIN_X = 44;
 const WANDER_MAX_X = 212;
 const HOP_MS = 360;
+const HURRY_MS = 240;   // called over, rather than wandering
 const HOP_RISE = 6;
 const HOP_STEP = 11;
 const REST_MIN_MS = 2200;
@@ -63,7 +64,11 @@ const BLINK_MS = 130;
 const BLINK_GAP_MIN = 2600;
 const BLINK_GAP_SPREAD = 3600;
 
-const walk = { x: SPOT_X, target: SPOT_X, facing: 1, hopFrom: 0, hopTo: 0, hopStart: 0, restUntil: 0 };
+const walk = {
+  x: SPOT_X, target: SPOT_X, facing: 1,
+  hopFrom: 0, hopTo: 0, hopStart: 0, hopMs: HOP_MS,
+  restUntil: 0, hurry: false,
+};
 let danceStart = null;
 let wobbleStart = null;
 let backdrop = null;
@@ -103,11 +108,12 @@ function stepWalk(now, state) {
   if (!state.hatched || state.wornOut || feedStart !== null || REDUCED_MOTION) return 0;
 
   if (walk.hopStart) {
-    const p = (now - walk.hopStart) / HOP_MS;
+    const p = (now - walk.hopStart) / walk.hopMs;
     if (p >= 1) {
       walk.x = walk.hopTo;
       walk.hopStart = 0;
       if (Math.abs(walk.x - walk.target) < 1) {
+        walk.hurry = false;
         walk.restUntil = now + REST_MIN_MS + Math.random() * (REST_MAX_MS - REST_MIN_MS);
       }
       return 0;
@@ -130,6 +136,7 @@ function stepWalk(now, state) {
   walk.hopFrom = walk.x;
   walk.hopTo = walk.x + dir * Math.min(HOP_STEP, Math.abs(walk.target - walk.x));
   walk.hopStart = now;
+  walk.hopMs = walk.hurry ? HURRY_MS : HOP_MS;
   return 0;
 }
 
@@ -188,19 +195,32 @@ scene.onclick = (event) => {
   const y = (event.clientY - box.top) * (ROOM_H / box.height);
   const centre = state.hatched ? walk.x : SPOT_X;
   const reachesUp = state.hatched ? 62 : 36;
-  if (Math.abs(x - centre) > POKE_REACH || y < FLOOR_Y - reachesUp || y > FLOOR_Y + 3) return;
+
+  const onIt = Math.abs(x - centre) <= POKE_REACH && y >= FLOOR_Y - reachesUp && y <= FLOOR_Y + 3;
 
   if (!state.hatched) {
-    if (wobbleStart === null) {
+    if (onIt && wobbleStart === null) {
       wobbleStart = performance.now();
       play('tap');
     }
     return;
   }
-  // Not while it is eating, and not on top of a dance already going.
-  if (danceStart !== null || feedStart !== null) return;
-  danceStart = performance.now();
-  play('tap');
+
+  if (onIt) {
+    // Not while it is eating, and not on top of a dance already going.
+    if (danceStart !== null || feedStart !== null) return;
+    danceStart = performance.now();
+    play('tap');
+    return;
+  }
+
+  // Tapped somewhere else in the room: come over here. Any height counts,
+  // because a 7-year-old aiming at the floor line is not a fair ask.
+  if (state.wornOut || feedStart !== null || danceStart !== null || REDUCED_MOTION) return;
+  walk.target = Math.min(WANDER_MAX_X, Math.max(WANDER_MIN_X, x));
+  walk.restUntil = 0;
+  // It hurries when called, rather than ambling the way it does on its own.
+  walk.hurry = true;
 };
 
 // Which column of the sheet to draw. Creatures whose movement frames have not
@@ -223,7 +243,7 @@ function frameFor(state, now) {
   if (loggedToday()) return COL_HAPPY;
 
   if (walk.hopStart && hasFrame(art, species, COL_WALK_B)) {
-    return Math.floor((now - walk.hopStart) / (HOP_MS / 2)) % 2 ? COL_WALK_B : COL_WALK_A;
+    return Math.floor((now - walk.hopStart) / (walk.hopMs / 2)) % 2 ? COL_WALK_B : COL_WALK_A;
   }
   // A blink every few seconds, so standing still does not mean standing dead.
   if (hasFrame(art, species, COL_BLINK) && !walk.hopStart) {

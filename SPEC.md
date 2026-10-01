@@ -267,8 +267,12 @@ interacted with the page, so the first tap is what starts it.
 
 ## Moving about
 
-The monster wanders the room on its own and dances when poked. The egg rocks
-when poked, and hatched monsters dance for about two seconds.
+The monster wanders the room on its own. **Poke it and it dances** for about
+two seconds; **tap anywhere else in the room and it comes over**, hurrying
+rather than ambling the way it does on its own. The egg rocks when poked.
+
+A tap to call it over counts at any height, not just on the floor line: a
+7-year-old aiming at a 30 pixel strip is not a fair ask.
 
 It stands still when it is **worn out** — it has no energy — and while it is
 **eating**. It also stays put when the browser reports
