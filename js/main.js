@@ -7,8 +7,10 @@ import {
 } from './monster.js';
 import { readSave, writeSave, saveBackup, readBackup } from './storage.js';
 import {
-  loadArt, drawMonster, drawEgg, drawCell, drawCheer, drawFurniture, drawFeed,
-  CELL, ROOM_W, ROOM_H, CHEER_MS, FEED_MS, MOOD_NORMAL, MOOD_HAPPY, MOOD_WORN,
+  loadArt, drawMonsterAt, drawEgg, drawCell, drawCheer, drawFurniture, drawFeed,
+  CELL, ROOM_W, ROOM_H, SPOT_X, FLOOR_Y, hasFrame,
+  COL_NORMAL, COL_HAPPY, COL_WORN, COL_BLINK, COL_WALK_A, COL_WALK_B,
+  COL_DANCE_A, COL_DANCE_B,
 } from './art.js';
 import { play, unlock, isMuted, setMuted, setMusic } from './sound.js';
 
@@ -33,49 +35,205 @@ const ctx = scene.getContext('2d');
 const cheerLine = document.getElementById('cheer');
 
 // ---- Scene ----
+//
+// The room is redrawn every frame so the monster can wander around it. There
+// is only one frame per mood, so all the life comes from where it is rather
+// than what it looks like: it hops, and it mirrors when heading left.
+//
+// The background — the room plus whatever furniture he has earned — is drawn
+// once into an offscreen canvas and blitted, because the furniture is drawn
+// rectangle by rectangle and doing that sixty times a second would be silly.
 
-function drawScene(now = performance.now()) {
-  ctx.clearRect(0, 0, ROOM_W, ROOM_H);
-  ctx.imageSmoothingEnabled = false;
-  if (art?.room) ctx.drawImage(art.room, 0, 0);
+const REDUCED_MOTION = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  const state = monsterState(save, today);
-  // Furniture first, so the monster is always in front of it.
-  for (const item of furnitureAt(state.level)) drawFurniture(ctx, art, item.id);
-  if (!state.hatched) {
-    drawEgg(ctx);
-  } else if (state.species) {
-    drawMonster(ctx, art, state.species, state.form, moodFor(state));
-  }
+const WANDER_MIN_X = 44;
+const WANDER_MAX_X = 212;
+const HOP_MS = 360;
+const HOP_RISE = 6;
+const HOP_STEP = 11;
+const REST_MIN_MS = 2200;
+const REST_MAX_MS = 6000;
+const DANCE_MS = 1900;
+const DANCE_FLIP_MS = 220;
+const DANCE_HOP_MS = 300;
+const DANCE_RISE = 9;
+const WOBBLE_MS = 600;
+const POKE_REACH = 26;
+const BLINK_MS = 130;
+const BLINK_GAP_MIN = 2600;
+const BLINK_GAP_SPREAD = 3600;
 
-  if (feedStart !== null) {
-    if (drawFeed(ctx, now - feedStart)) {
-      requestAnimationFrame(drawScene);
-      return;
-    }
-    // The frame above was drawn while it was still eating, so it is still
-    // wearing the happy face. Clear the treat and draw once more, or it keeps
-    // that face until something else happens to redraw the room.
-    feedStart = null;
-    drawScene();
-    return;
-  }
+const walk = { x: SPOT_X, target: SPOT_X, facing: 1, hopFrom: 0, hopTo: 0, hopStart: 0, restUntil: 0 };
+let danceStart = null;
+let wobbleStart = null;
+let backdrop = null;
+let backdropKey = '';
 
-  if (cheerStart !== null) {
-    if (drawCheer(ctx, now - cheerStart)) {
-      requestAnimationFrame(drawScene);
-    } else {
-      cheerStart = null;
-      drawScene();
-    }
-  }
+function backdropFor(state) {
+  const key = `${!!art}:${furnitureAt(state.level).map((item) => item.id).join(',')}`;
+  if (backdrop && backdropKey === key) return backdrop;
+  const canvas = document.createElement('canvas');
+  canvas.width = ROOM_W;
+  canvas.height = ROOM_H;
+  const g = canvas.getContext('2d');
+  g.imageSmoothingEnabled = false;
+  if (art?.room) g.drawImage(art.room, 0, 0);
+  // Furniture goes in the background, so the monster walks in front of it.
+  for (const item of furnitureAt(state.level)) drawFurniture(g, art, item.id);
+  backdrop = canvas;
+  backdropKey = key;
+  return canvas;
 }
 
-function moodFor(state) {
+// Moves the monster along, and returns how far off the floor it is right now.
+function stepWalk(now, state) {
+  if (danceStart !== null) {
+    const t = now - danceStart;
+    if (t >= DANCE_MS) {
+      danceStart = null;
+      walk.facing = 1;
+      walk.restUntil = now + 800;
+      return 0;
+    }
+    walk.facing = Math.floor(t / DANCE_FLIP_MS) % 2 ? -1 : 1;
+    return Math.sin((Math.PI * (t % DANCE_HOP_MS)) / DANCE_HOP_MS) * DANCE_RISE;
+  }
+
+  // It stands still to eat, and when it is worn out it has no energy to roam.
+  if (!state.hatched || state.wornOut || feedStart !== null || REDUCED_MOTION) return 0;
+
+  if (walk.hopStart) {
+    const p = (now - walk.hopStart) / HOP_MS;
+    if (p >= 1) {
+      walk.x = walk.hopTo;
+      walk.hopStart = 0;
+      if (Math.abs(walk.x - walk.target) < 1) {
+        walk.restUntil = now + REST_MIN_MS + Math.random() * (REST_MAX_MS - REST_MIN_MS);
+      }
+      return 0;
+    }
+    walk.x = walk.hopFrom + (walk.hopTo - walk.hopFrom) * p;
+    return Math.sin(Math.PI * p) * HOP_RISE;
+  }
+
+  if (now < walk.restUntil) return 0;
+  if (Math.abs(walk.x - walk.target) < 1) {
+    // Somewhere far enough away to be worth the trip.
+    let next = walk.x;
+    while (Math.abs(next - walk.x) < 30) {
+      next = WANDER_MIN_X + Math.random() * (WANDER_MAX_X - WANDER_MIN_X);
+    }
+    walk.target = next;
+  }
+  const dir = walk.target > walk.x ? 1 : -1;
+  walk.facing = dir;
+  walk.hopFrom = walk.x;
+  walk.hopTo = walk.x + dir * Math.min(HOP_STEP, Math.abs(walk.target - walk.x));
+  walk.hopStart = now;
+  return 0;
+}
+
+function drawScene(now) {
+  const state = monsterState(save, today);
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(backdropFor(state), 0, 0);
+
+  if (!state.hatched) {
+    // A poked egg rocks, and settles.
+    let shift = 0;
+    if (wobbleStart !== null) {
+      const t = (now - wobbleStart) / WOBBLE_MS;
+      if (t >= 1) wobbleStart = null;
+      else shift = Math.sin(t * Math.PI * 6) * 3 * (1 - t);
+    }
+    drawEgg(ctx, SPOT_X + Math.round(shift));
+    return;
+  }
+  if (!state.species) return;
+
+  // With a real walk cycle the legs do the work, so the hop drops to a bob.
+  const bob = hasFrame(art, state.species, COL_WALK_B) && walk.hopStart ? 0.3 : 1;
+  const rise = stepWalk(now, state) * bob;
+  drawMonsterAt(ctx, art, state.species, state.form, frameFor(state, now), walk.x, rise, walk.facing);
+
+  // Both of these follow the monster, wherever it has wandered to.
+  if (feedStart !== null && !drawFeed(ctx, now - feedStart, walk.x)) feedStart = null;
+  if (cheerStart !== null && !drawCheer(ctx, now - cheerStart, walk.x)) cheerStart = null;
+}
+
+// One loop for the whole room. Browsers already pause requestAnimationFrame
+// while a page is hidden, so there is nothing to do about that here: checking
+// visibilityState as well stopped the loop dead in contexts that report hidden
+// but keep calling back, and it never started again.
+let looping = false;
+
+function frame(now) {
+  // Nothing to draw while the starter picker is up.
+  if (!document.getElementById('game').hidden) drawScene(now);
+  requestAnimationFrame(frame);
+}
+
+function startLoop() {
+  if (looping) return;
+  looping = true;
+  requestAnimationFrame(frame);
+}
+
+// Poking it: the monster dances, the egg rocks.
+scene.onclick = (event) => {
+  const state = monsterState(save, today);
+  if (!state.species) return;
+  const box = scene.getBoundingClientRect();
+  const x = (event.clientX - box.left) * (ROOM_W / box.width);
+  const y = (event.clientY - box.top) * (ROOM_H / box.height);
+  const centre = state.hatched ? walk.x : SPOT_X;
+  const reachesUp = state.hatched ? 62 : 36;
+  if (Math.abs(x - centre) > POKE_REACH || y < FLOOR_Y - reachesUp || y > FLOOR_Y + 3) return;
+
+  if (!state.hatched) {
+    if (wobbleStart === null) {
+      wobbleStart = performance.now();
+      play('tap');
+    }
+    return;
+  }
+  // Not while it is eating, and not on top of a dance already going.
+  if (danceStart !== null || feedStart !== null) return;
+  danceStart = performance.now();
+  play('tap');
+};
+
+// Which column of the sheet to draw. Creatures whose movement frames have not
+// been drawn yet simply never reach those branches, and fall back to hopping
+// and mirroring the three frames they do have.
+let blinkUntil = 0;
+let nextBlink = 0;
+
+function frameFor(state, now) {
+  const species = state.species;
+  if (danceStart !== null) {
+    if (hasFrame(art, species, COL_DANCE_B)) {
+      return Math.floor((now - danceStart) / DANCE_FLIP_MS) % 2 ? COL_DANCE_B : COL_DANCE_A;
+    }
+    return COL_HAPPY;
+  }
   // Whatever else is true, it is pleased about being fed.
-  if (feedStart !== null) return MOOD_HAPPY;
-  if (state.wornOut) return MOOD_WORN;
-  return loggedToday() ? MOOD_HAPPY : MOOD_NORMAL;
+  if (feedStart !== null) return COL_HAPPY;
+  if (state.wornOut) return COL_WORN;
+  if (loggedToday()) return COL_HAPPY;
+
+  if (walk.hopStart && hasFrame(art, species, COL_WALK_B)) {
+    return Math.floor((now - walk.hopStart) / (HOP_MS / 2)) % 2 ? COL_WALK_B : COL_WALK_A;
+  }
+  // A blink every few seconds, so standing still does not mean standing dead.
+  if (hasFrame(art, species, COL_BLINK) && !walk.hopStart) {
+    if (now > nextBlink) {
+      blinkUntil = now + BLINK_MS;
+      nextBlink = now + BLINK_GAP_MIN + Math.random() * BLINK_GAP_SPREAD;
+    }
+    if (now < blinkUntil) return COL_BLINK;
+  }
+  return COL_NORMAL;
 }
 
 function loggedToday() {
@@ -160,7 +318,7 @@ function starterCard(species) {
   });
   // Only the hatchling is ever drawn here, so choosing never spoils the
   // forms it grows into.
-  if (art) drawCell(canvas.getContext('2d'), art, species, 0, MOOD_NORMAL, 0, 0);
+  if (art) drawCell(canvas.getContext('2d'), art, species, 0, COL_NORMAL, 0, 0);
 
   const current = monsterState(save, today).species === species;
   return el('article', { className: `pick${current ? ' current' : ''}` },
@@ -423,7 +581,6 @@ function render() {
     renderStatus(state);
     renderStats(state);
     renderCards(state);
-    drawScene();
   }
   renderFooter();
 }
@@ -519,7 +676,9 @@ function checkDay() {
 }
 setInterval(checkDay, 30000);
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') checkDay();
+  if (document.visibilityState !== 'visible') return;
+  checkDay();
+  startLoop();
 });
 window.addEventListener('pageshow', checkDay);
 
@@ -531,6 +690,7 @@ if ('serviceWorker' in navigator && location.hostname !== 'localhost') {
 
 renderMute();
 render();
+startLoop();
 loadArt().then((loaded) => {
   art = loaded;
   render();

@@ -10,7 +10,7 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { inflateSync } from 'node:zlib';
 import { FURNITURE } from '../js/monster.js';
-import { FURNITURE_ART, FURNITURE_SPOTS } from '../js/art.js';
+import { FURNITURE_ART, FURNITURE_SPOTS, SHEET_COLUMNS } from '../js/art.js';
 
 const STARTERS = ['embertail', 'voltectra', 'bubbletide'];
 const CELL = 64;
@@ -19,7 +19,7 @@ const ROOM = { w: 256, h: 160, floorY: 128 };
 const CLEAR = { x0: 96, x1: 159, y0: 64, y1: 127 }; // must stay open behind the monster
 const FORM_HEIGHTS = [34, 46, 60]; // hatchling, adolescent, full grown
 const FORM_NAMES = ['Hatchling', 'Adolescent', 'Full grown'];
-const MOOD_NAMES = ['normal', 'happy', 'worn out'];
+const COLUMN_NAMES = ['normal', 'happy', 'worn out', 'blink', 'walk 1', 'walk 2', 'dance 1', 'dance 2'];
 const MAX_COLORS = 32;
 
 let failures = 0;
@@ -95,11 +95,14 @@ function checkSheet(species) {
     return;
   }
 
-  if (img.width !== SHEET || img.height !== SHEET) {
-    fail(`is ${img.width}x${img.height}, must be ${SHEET}x${SHEET} — the app will ignore it and draw placeholders`);
+  const columns = SHEET_COLUMNS[img.width];
+  if (!columns || img.height !== SHEET) {
+    const widths = Object.keys(SHEET_COLUMNS).join(', ');
+    fail(`is ${img.width}x${img.height}, must be one of ${widths} wide by ${SHEET} tall — the app will ignore it`);
     return;
   }
-  pass(`${SHEET}x${SHEET}, 3 moods x 3 forms of ${CELL}px`);
+  pass(`${img.width}x${SHEET}: ${columns} frames x 3 forms of ${CELL}px (${COLUMN_NAMES.slice(0, columns).join(', ')})`);
+  if (columns === 3) note('no movement frames yet, so it hops and mirrors instead');
 
   let soft = 0;
   const colors = new Set();
@@ -119,8 +122,8 @@ function checkSheet(species) {
     const baselines = [];
     const heights = [];
     const feet = [];
-    for (let mood = 0; mood < 3; mood++) {
-      const ox = mood * CELL;
+    for (let column = 0; column < columns; column++) {
+      const ox = column * CELL;
       const oy = form * CELL;
       let lowest = -1, highest = CELL, left = CELL, right = -1, filled = 0;
       for (let y = 0; y < CELL; y++) {
@@ -133,7 +136,7 @@ function checkSheet(species) {
           if (x > right) right = x;
         }
       }
-      const where = `${FORM_NAMES[form]} / ${MOOD_NAMES[mood]}`;
+      const where = `${FORM_NAMES[form]} / ${COLUMN_NAMES[column]}`;
       if (!filled) { fail(`${where}: cell is empty`); continue; }
 
       baselines.push(lowest);
@@ -158,15 +161,15 @@ function checkSheet(species) {
       }
     }
     if (new Set(baselines).size > 1) {
-      fail(`${FORM_NAMES[form]}: baselines differ across moods (${baselines.join(', ')}) — it will hop`);
+      fail(`${FORM_NAMES[form]}: baselines differ across frames (${baselines.join(', ')}) — it will jump`);
     }
     if (feet.length && Math.max(...feet) - Math.min(...feet) > 6) {
-      fail(`${FORM_NAMES[form]}: base shifts sideways across moods (x ${feet.map((f) => f.toFixed(1)).join(', ')}) — it will slide`);
+      fail(`${FORM_NAMES[form]}: base shifts sideways across frames (x ${feet.map((f) => f.toFixed(1)).join(', ')}) — it will slide`);
     }
     if (heights.length) {
       // A slumped worn-out pose is shorter on purpose, so only the normal
       // pose is compared against the brief.
-      note(`${FORM_NAMES[form]}: ${heights.join('/')} px tall (normal/happy/worn out), brief suggests about ${FORM_HEIGHTS[form]} standing`);
+      note(`${FORM_NAMES[form]}: ${heights.join('/')} px tall, brief suggests about ${FORM_HEIGHTS[form]} standing`);
     }
   }
 }

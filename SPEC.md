@@ -265,6 +265,40 @@ together. The choice is saved per browser under `habit-monster-muted` and is
 not part of a backup. Phones refuse to play audio before the person has
 interacted with the page, so the first tap is what starts it.
 
+## Moving about
+
+The monster wanders the room on its own and dances when poked. The egg rocks
+when poked, and hatched monsters dance for about two seconds.
+
+It stands still when it is **worn out** — it has no energy — and while it is
+**eating**. It also stays put when the browser reports
+`prefers-reduced-motion`.
+
+Position is code, not art. The room is redrawn every frame through one
+`requestAnimationFrame` loop, with the background (the room plus the
+furniture he has earned) drawn once into an offscreen canvas and blitted,
+since the furniture is drawn rectangle by rectangle. The loop does **not**
+check `visibilityState`: browsers already pause `requestAnimationFrame` for a
+hidden page, and checking as well stopped the loop dead in contexts that
+report hidden but keep calling back, with nothing to start it again.
+
+### Frames
+
+Each creature's sheet says how many frames it has by its **width**, so one
+creature can have movement frames while the others do not:
+
+| Width | Columns | Frames |
+| --- | --- | --- |
+| 192 | 0-2 | normal, happy, worn out |
+| 256 | 0-3 | adds blink |
+| 384 | 0-5 | adds dance 1 and 2 |
+| 512 | 0-7 | adds walk 1 and 2 |
+
+With only the first three, movement is faked by hopping and mirroring, and
+the happy frame stands in for dancing. Where the real frames exist the hop
+drops to a bob, since the legs are doing the work. Every frame keeps its feet
+on y 63 — all vertical movement is in code — so the two can be combined.
+
 ## The screen
 
 ### Fonts

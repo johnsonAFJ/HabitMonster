@@ -26,7 +26,7 @@
     import { STARTERS, STARTER_LABELS, FORM_LABELS } from './js/monster.js';
     import { loadArt, drawMonster, drawEgg, CELL, SHEET, ROOM_W, ROOM_H } from './js/art.js';
 
-    const MOODS = ['normal', 'happy', 'worn out'];
+    const COLUMNS = ['normal', 'happy', 'worn out', 'blink', 'walk 1', 'walk 2', 'dance 1', 'dance 2'];
     const art = await loadArt();
     const out = document.getElementById('out');
 
@@ -43,22 +43,22 @@
         out.append(node('p', `assets/${species}.png is missing or the wrong size.`, 'missing'));
         continue;
       }
-      out.append(node('p', `Rows: ${FORM_LABELS.join(', ')}. Columns: ${MOODS.join(', ')}.`));
+      out.append(node('p', `Rows: ${FORM_LABELS.join(', ')}. Columns: ${COLUMNS.slice(0, art.columns[species]).join(', ')}.`));
 
       // The whole sheet at 2x, with cell lines.
+      const image = art.sheets[species];
+      const columns = art.columns[species];
       const sheet = document.createElement('canvas');
       sheet.className = 'sheet';
-      sheet.width = SHEET * 2;
+      sheet.width = image.naturalWidth * 2;
       sheet.height = SHEET * 2;
-      sheet.style.width = `${SHEET * 2}px`;
+      sheet.style.width = `${sheet.width}px`;
       const sctx = sheet.getContext('2d');
       sctx.imageSmoothingEnabled = false;
-      sctx.drawImage(art.sheets[species], 0, 0, sheet.width, sheet.height);
+      sctx.drawImage(image, 0, 0, sheet.width, sheet.height);
       sctx.fillStyle = 'rgba(43, 34, 32, 0.3)';
-      for (let i = 1; i < 3; i++) {
-        sctx.fillRect(i * CELL * 2, 0, 1, sheet.height);
-        sctx.fillRect(0, i * CELL * 2, sheet.width, 1);
-      }
+      for (let i = 1; i < columns; i++) sctx.fillRect(i * CELL * 2, 0, 1, sheet.height);
+      for (let i = 1; i < 3; i++) sctx.fillRect(0, i * CELL * 2, sheet.width, 1);
       out.append(sheet);
 
       // Each form in the room, normal mood, to check it sits on the floor.

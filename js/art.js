@@ -17,9 +17,24 @@ export const ROOM_H = 160;
 export const FLOOR_Y = 128;
 export const SPOT_X = 128;
 
-export const MOOD_NORMAL = 0;
-export const MOOD_HAPPY = 1;
-export const MOOD_WORN = 2;
+// Columns of a creature's sheet. The first three always exist; the rest
+// arrive with the movement frames, and a sheet's width says how many it has,
+// so one creature can have them while the others do not.
+export const COL_NORMAL = 0;
+export const COL_HAPPY = 1;
+export const COL_WORN = 2;
+export const COL_BLINK = 3;
+export const COL_WALK_A = 4;
+export const COL_WALK_B = 5;
+export const COL_DANCE_A = 6;
+export const COL_DANCE_B = 7;
+
+export const SHEET_COLUMNS = { 192: 3, 256: 4, 384: 6, 512: 8 };
+
+// Does this creature have the frame in that column yet?
+export function hasFrame(art, species, column) {
+  return (art?.columns?.[species] ?? 3) > column;
+}
 
 const OUTLINE = '#2b2220';
 const EGG_SHELL = '#f2e4c9';
@@ -49,10 +64,11 @@ function loadQuietly(src, isValid) {
 }
 
 export async function loadArt() {
-  const square = (w, h) => w === SHEET && h === SHEET;
+  const valid = (w, h) => SHEET_COLUMNS[w] && h === SHEET;
+  const widths = Object.keys(SHEET_COLUMNS).join(', ');
   const [room, sheets, pieces] = await Promise.all([
     loadImage('assets/room.png', (w, h) => w === ROOM_W && h === ROOM_H, `${ROOM_W}x${ROOM_H}`),
-    Promise.all(STARTERS.map((s) => loadImage(`assets/${s}.png`, square, `${SHEET}x${SHEET}`))),
+    Promise.all(STARTERS.map((s) => loadImage(`assets/${s}.png`, valid, `${widths} x ${SHEET}`))),
     // Only pieces listed in FURNITURE_ART are fetched. Asking for files that
     // do not exist costs a request each, and the browser logs every failed
     // image as an error even though the drawn fallback handles it.
@@ -65,6 +81,7 @@ export async function loadArt() {
   return {
     room,
     sheets: Object.fromEntries(STARTERS.map((s, i) => [s, sheets[i]])),
+    columns: Object.fromEntries(STARTERS.map((s, i) => [s, sheets[i] ? SHEET_COLUMNS[sheets[i].naturalWidth] : 3])),
     furniture: Object.fromEntries(FURNITURE.map(({ id }, i) => [id, pieces[i]])),
     missing: [
       ...(room ? [] : ['room.png']),
@@ -74,20 +91,40 @@ export async function loadArt() {
 }
 
 // One cell of a sheet, drawn with its top-left corner at (x, y).
-export function drawCell(ctx, art, species, form, mood, x, y, scale = 1) {
+export function drawCell(ctx, art, species, form, column, x, y, scale = 1) {
   // The first render happens before loadArt resolves, so a missing sheet is
   // normal rather than exceptional.
   const sheet = art?.sheets?.[species];
   if (!sheet) return false;
   ctx.imageSmoothingEnabled = false;
-  ctx.drawImage(sheet, mood * CELL, form * CELL, CELL, CELL, x, y, CELL * scale, CELL * scale);
+  ctx.drawImage(sheet, column * CELL, form * CELL, CELL, CELL, x, y, CELL * scale, CELL * scale);
   return true;
 }
 
 // The monster standing on the floor line, centered on its spot. The cell's
 // bottom row lands ON the floor line, not the wall pixel above it.
-export function drawMonster(ctx, art, species, form, mood) {
-  return drawCell(ctx, art, species, form, mood, SPOT_X - CELL / 2, FLOOR_Y - CELL + 1);
+export function drawMonster(ctx, art, species, form, column) {
+  return drawCell(ctx, art, species, form, column, SPOT_X - CELL / 2, FLOOR_Y - CELL + 1);
+}
+
+// The same, but anywhere along the floor, lifted by `rise` for a hop, and
+// mirrored when it is heading left. There is only one frame per mood, so all
+// the life has to come from where it is rather than what it looks like.
+export function drawMonsterAt(ctx, art, species, form, column, x, rise = 0, facing = 1) {
+  const sheet = art?.sheets?.[species];
+  if (!sheet) return false;
+  const left = Math.round(x - CELL / 2);
+  const top = Math.round(FLOOR_Y - rise) - CELL + 1;
+  ctx.save();
+  ctx.imageSmoothingEnabled = false;
+  if (facing < 0) {
+    // Mirror about the monster's own centre, so it does not slide sideways.
+    ctx.translate(Math.round(x) * 2, 0);
+    ctx.scale(-1, 1);
+  }
+  ctx.drawImage(sheet, column * CELL, form * CELL, CELL, CELL, left, top, CELL, CELL);
+  ctx.restore();
+  return true;
 }
 
 // A speckled egg, sitting on the floor line. Drawn a row at a time so the
@@ -159,18 +196,18 @@ function drawBerry(ctx, x, y) {
   px(ctx, OUTLINE, x - 1, y - 3, 3, 1);
 }
 
-export function drawFeed(ctx, elapsed) {
+export function drawFeed(ctx, elapsed, at = SPOT_X) {
   const t = elapsed / FEED_MS;
   if (t >= 1) return false;
   if (t < FEED_LANDS) {
     // Falling in, accelerating, drifting towards the mouth.
     const p = t / FEED_LANDS;
     const from = 14;
-    drawBerry(ctx, SPOT_X + Math.round(10 * (1 - p)), Math.round(from + (MOUTH_Y - from) * p * p));
+    drawBerry(ctx, Math.round(at + 10 * (1 - p)), Math.round(from + (MOUTH_Y - from) * p * p));
   } else if (t < FEED_CRUMBS) {
     const p = (t - FEED_LANDS) / (FEED_CRUMBS - FEED_LANDS);
     for (const [dx, dy] of [[-7, -2], [7, -3], [-4, 4], [5, 3], [0, -7]]) {
-      const x = Math.round(SPOT_X + dx * (0.4 + p));
+      const x = Math.round(at + dx * (0.4 + p));
       const y = Math.round(MOUTH_Y + 3 + dy * (0.4 + p) - p * 4);
       px(ctx, p > 0.6 ? BERRY : BERRY_L, x, y, p > 0.7 ? 1 : 2, p > 0.7 ? 1 : 2);
     }
@@ -183,7 +220,7 @@ export function drawFeed(ctx, elapsed) {
 // Sparkles rising off the monster just after a habit is logged.
 export const CHEER_MS = 900;
 
-export function drawCheer(ctx, elapsed) {
+export function drawCheer(ctx, elapsed, at = SPOT_X) {
   const t = elapsed / CHEER_MS;
   if (t >= 1) return false;
   const motes = [[-22, 0.0], [-9, 0.25], [6, 0.12], [19, 0.35], [-16, 0.5], [13, 0.55]];
@@ -193,7 +230,7 @@ export function drawCheer(ctx, elapsed) {
     const y = FLOOR_Y - 26 - local * 40;
     const size = local > 0.75 ? 1 : 2;
     ctx.fillStyle = local > 0.6 ? '#f6d98a' : '#ffffff';
-    ctx.fillRect(Math.round(SPOT_X + dx), Math.round(y), size, size);
+    ctx.fillRect(Math.round(at + dx), Math.round(y), size, size);
   }
   return true;
 }
