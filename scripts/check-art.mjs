@@ -10,7 +10,7 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { inflateSync } from 'node:zlib';
 import { FURNITURE } from '../js/monster.js';
-import { FURNITURE_ART, FURNITURE_SPOTS, SHEET_COLUMNS } from '../js/art.js';
+import { FURNITURE_ART, FURNITURE_SPOTS, SHEET_COLUMNS, COL_WALK_A } from '../js/art.js';
 
 const STARTERS = ['embertail', 'voltectra', 'bubbletide'];
 const CELL = 64;
@@ -121,7 +121,8 @@ function checkSheet(species) {
   for (let form = 0; form < 3; form++) {
     const baselines = [];
     const heights = [];
-    const feet = [];
+    const feet = [];    // only the standing poses: walking feet are meant to move
+    const bodies = [];
     for (let column = 0; column < columns; column++) {
       const ox = column * CELL;
       const oy = form * CELL;
@@ -146,8 +147,13 @@ function checkSheet(species) {
         fail(`${where}: touches a cell border, needs 1px clear on top/left/right`);
       }
 
-      // The brief centers the BASE, not the silhouette: a tail or big ears
-      // legitimately push the bounding box off to one side.
+      bodies.push((left + right) / 2);
+
+      // In a standing pose the brief centres the BASE, not the silhouette: a
+      // tail or big ears legitimately push the bounding box off to one side.
+      // Walk and dance frames are exempt, because feet that stay put through a
+      // walk cycle would be the bug.
+      if (column >= COL_WALK_A) continue;
       let footLeft = CELL, footRight = -1;
       for (let x = 0; x < CELL; x++) {
         if (img.rgba[at(img, ox + x, oy + lowest) + 3] === 0) continue;
@@ -164,7 +170,12 @@ function checkSheet(species) {
       fail(`${FORM_NAMES[form]}: baselines differ across frames (${baselines.join(', ')}) — it will jump`);
     }
     if (feet.length && Math.max(...feet) - Math.min(...feet) > 6) {
-      fail(`${FORM_NAMES[form]}: base shifts sideways across frames (x ${feet.map((f) => f.toFixed(1)).join(', ')}) — it will slide`);
+      fail(`${FORM_NAMES[form]}: base shifts between standing poses (x ${feet.map((f) => f.toFixed(1)).join(', ')}) — it will slide`);
+    }
+    // What must hold for every frame is that the creature itself stays put.
+    // The code moves it along; the art should not also jump it sideways.
+    if (bodies.length && Math.max(...bodies) - Math.min(...bodies) > 8) {
+      fail(`${FORM_NAMES[form]}: the body jumps between frames (centre x ${bodies.map((b) => b.toFixed(1)).join(', ')})`);
     }
     if (heights.length) {
       // A slumped worn-out pose is shorter on purpose, so only the normal
