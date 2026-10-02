@@ -323,6 +323,101 @@ the happy frame stands in for dancing. Where the real frames exist the hop
 drops to a bob, since the legs are doing the work. Every frame keeps its feet
 on y 63 — all vertical movement is in code — so the two can be combined.
 
+## The territory game
+
+A Paper.io-style game, with his own monster as the player and the two
+starters he did not pick as rivals. It is a reward for finishing his habits,
+not a way to earn XP: it gives none.
+
+### When it is open
+
+**Finishing every habit on a day opens the game for all of the next day**,
+with no limit on rounds. Two of his habits happen at bedtime, so a rule
+about today would unlock it just as he went to sleep. A day is finished when
+at least one habit was part of it and every one was logged — "at least one"
+so a save with no habits is not finished every day. The rule is
+`freePlayOn` in `js/monster.js`, derived from the logs like everything else.
+
+The lock is checked whenever a **round starts**, "play again" included, but
+never during one: if midnight locks the new day, the round he is in still
+finishes.
+
+The **🎮 Play** button sits under the treat button. Locked, it is grey with a
+🔒, and tapping it gives a small shake, the soft tap sound, and *"Finish all
+your habits today to play tomorrow!"* — not the error sound, because he has
+done nothing wrong. The line under it is about **tomorrow**, which is the
+thing he can still change: *"2 of 3 done. One more and tomorrow is free
+play."*
+
+**Before launch the button is hidden** unless the address has `?game` in it,
+so it can be play-tested first. `?game=open` and `?game=locked` force either
+state. Nothing about the flag is saved, and the Home Screen app always opens
+at the same address, so he cannot set it.
+
+### The rules
+
+`js/game.js` is the game as pure rules, playable and testable in Node. A
+24 x 24 grid, moving one cell at a time, 7 times a second.
+
+- Leave your land and you draw a line behind you. Get back to your land and
+  everything inside the loop is yours, **other monsters' land included**.
+- **Touch anyone's line and they are out** — including your own.
+- **Monsters walk straight through each other.** Only lines matter. A line is
+  the cells a monster has left behind, never the one it stands on, which is
+  what makes that work. Walking head-on along a rival's line still puts you
+  both out: you step onto the line behind it, and it onto yours.
+- The **edge is a wall**: walk into it and you just stand there. Turning
+  straight back is ignored while dragging a line, since it would mean walking
+  into your own; on your own land it is harmless and allowed.
+- A rival that is out **loses its land**, which opens up a big piece of the
+  board, and comes back a few seconds later on a new square.
+- A monster whose land is taken entirely is out, with nowhere to return to.
+- **One life.** The round ends when he is caught, and "play again" starts a
+  new one at once. His score is the most of the board he held, and his best
+  is saved on his monster, like its name.
+- Cheers at 25%, 50% and 75% of the board.
+
+Lines are stored as a **bitmask**, one bit per monster, because two monsters
+stepping off the same cell both leave it as part of their line; with one
+owner per cell the second overwrote the first and left an invisible gap.
+
+Every round has its own seeded random numbers, so a seed replays a round
+exactly. That is what lets the territory fill and the collisions be tested
+against pinned rounds.
+
+### The rivals
+
+Voltectra and Bubbletide, **always drawn as hatchlings**, so their evolutions
+are not spoiled before they arrive in the backpack. They draw rectangular
+loops with a personality rolled each round — how far out, how wide, how long
+they potter at home, which way they bend, how hard they avoid other lines —
+and they **never chase him**. Danger comes from crossing paths.
+
+Over fifty rounds with him idle at home they grew in every one, and only 2 of
+117 knockouts were self-inflicted. They can take most of the board inside a
+minute if he does not compete, so **speed is the first thing to tune** after
+play-testing.
+
+### On screen
+
+`js/arena.js` draws it and handles input. His monster is drawn at half size,
+about two and a half cells, using Embertail's walk frames; the rules tick on
+whole cells and the drawing slides between them every frame. One colour per
+creature: ember orange, copper-yellow and jade, solid for land and paler for
+lines, on a plain floor so the territory is easy to read.
+
+Four big arrow buttons under the board, plus the keyboard arrows. They use
+`pointerdown`, since `click` waits to rule out a double tap and is far too
+slow for steering. A quick guide the first time, a 3-2-1 before every round.
+Leaving the app pauses it and the clock skips the time away, so coming back
+can never fast-forward him into a rival; there is a pause button too. The
+backup buttons are hidden while he plays, because on a phone they sit right
+under the arrow pad.
+
+Sounds reuse what exists: `coin` when he claims, `ui_confirm` when he
+catches a rival, `ui_cancel` when he is caught, `level_up` for the cheers, and
+`music_title_loop` throughout.
+
 ## The screen
 
 ### Fonts
@@ -533,6 +628,8 @@ color:
 | `js/storage.js` | localStorage save and load, JSON export and import |
 | `js/art.js` | Loads the sheets and room, draws the monster, the egg and the cheer sparkles |
 | `js/sound.js` | Sound effects, optional music, and the mute setting |
+| `js/game.js` | The territory game's rules and rivals. No DOM, so Node can test it. |
+| `js/arena.js` | The territory game on screen: drawing, controls, pausing, the end of a round |
 | `js/main.js` | Page wiring: the picker, the room, the status strip, habit cards, midnight rollover |
 | `manifest.webmanifest` | App name, icons and colors for installing on a phone |
 | `sw.js` | Offline support for the published site |
@@ -542,6 +639,8 @@ color:
 | `scripts/serve.mjs` | The local static server behind `npm start` |
 | `tests/monster.test.js` | Tests for `monster.js` |
 | `tests/events.test.js` | Checks every event lands at its level, and that `EVENTS.md` is current |
+| `tests/freeplay.test.js` | When the game is open, and the best score |
+| `tests/game.test.js` | The territory game: lines, claims, stealing, collisions, rivals |
 | `events.html` | The events chart, with live progress from the save on this device |
 | `EVENTS.md` | The events chart, generated by `npm run events` |
 | `scripts/make-events.mjs` | Writes `EVENTS.md` |

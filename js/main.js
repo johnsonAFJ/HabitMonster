@@ -4,7 +4,9 @@ import {
   dateKey, parseKey, monsterState, latestValue, currentStreak, furnitureAt,
   emptySave, chooseStarter, addHabit, logToday, undoToday, renameHabit,
   deleteHabit, setStat, freeSlots, nameMonster, feedMonster, hasFedToday,
+  freePlayOn, todaysProgress, recordScore,
 } from './monster.js';
+import { createArena } from './arena.js';
 import { readSave, writeSave, saveBackup, readBackup } from './storage.js';
 import {
   loadArt, drawMonsterAt, drawEgg, drawCell, drawCheer, drawFurniture, drawFeed,
@@ -27,6 +29,19 @@ let art = null;
 let cheerStart = null;   // when the sparkle burst began
 let feedStart = null;    // when the treat started falling
 let naming = false;      // the monster's name is being typed
+let arenaOpen = false;   // the territory game is on screen
+
+// ?game shows the Play button before launch, so it can be play-tested first.
+// ?game=open and ?game=locked force either state, to see what he would see.
+// Nothing about it is saved, and his Home Screen app always opens at the same
+// address, so he has no way to set it.
+const GAME_FLAG = new URLSearchParams(location.search).get('game');
+
+function gameIsOpen() {
+  if (GAME_FLAG === 'open') return true;
+  if (GAME_FLAG === 'locked') return false;
+  return freePlayOn(save, today);
+}
 let renamingHabit = null; // id of the habit whose name is being typed
 let picking = false;     // the picker is open by choice, not because there is no monster
 
@@ -389,6 +404,8 @@ function renderStatus(state) {
   // No digits in the label: the pixel font's numbers are hard to read.
   feed.textContent = fed ? 'Fed today' : 'Feed him a treat';
 
+  renderPlay(state);
+
   const fraction = state.levelNeeds ? Math.min(1, state.intoLevel / state.levelNeeds) : 0;
   const fill = document.getElementById('xp-fill');
   fill.style.width = `${fraction * 100}%`;
@@ -592,8 +609,12 @@ function renderFooter() {
 function render() {
   const state = monsterState(save, today);
   const showPicker = picking || !state.species;
-  document.getElementById('picker').hidden = !showPicker;
-  document.getElementById('game').hidden = showPicker;
+  document.getElementById('picker').hidden = !showPicker || arenaOpen;
+  document.getElementById('game').hidden = showPicker || arenaOpen;
+  // The backup buttons sit right under the arrow pad on a phone, where a
+  // mashed "down" could land on one mid-round.
+  document.querySelector('.bottom').hidden = arenaOpen;
+  if (arenaOpen) return; // the game screen looks after itself
   setMusic(showPicker ? 'title' : 'room');
 
   if (showPicker) renderPicker();
@@ -622,6 +643,75 @@ document.getElementById('mute').onclick = () => {
 // so the first tap anywhere is what actually starts it.
 document.addEventListener('pointerdown', unlock, { once: true });
 document.addEventListener('keydown', unlock, { once: true });
+
+// ---- The game's button ----
+
+// The button says whether the game is open now, which depends on yesterday.
+// The line under it says whether it will be open tomorrow, which depends on
+// today — the thing he can still do something about.
+function renderPlay(state) {
+  const row = document.getElementById('play-row');
+  row.hidden = GAME_FLAG === null || !state.hatched;
+  if (row.hidden) return;
+
+  const open = gameIsOpen();
+  const button = document.getElementById('play');
+  button.classList.toggle('locked', !open);
+  button.textContent = open ? '\u{1F3AE} Play' : '\u{1F512} Locked';
+  button.setAttribute('aria-label', open ? 'Play the game' : 'The game is locked');
+
+  const line = document.getElementById('tomorrow');
+  const { done, total, finished, retiredUnlogged } = todaysProgress(save, today);
+  line.classList.toggle('ready', finished);
+  if (!total) {
+    line.textContent = 'Add a habit to start earning free play.';
+  } else if (finished) {
+    line.textContent = 'All done! Free play tomorrow \u2713';
+  } else {
+    const left = total - done;
+    const note = retiredUnlogged ? ' (one you deleted today still counts)' : '';
+    line.textContent = `${done} of ${total} done${note}. ${left === 1 ? 'One more' : `${left} more`} and tomorrow is free play.`;
+  }
+}
+
+let lockedNote = null;
+
+document.getElementById('play').onclick = () => {
+  const state = monsterState(save, today);
+  if (!gameIsOpen()) {
+    // A shake and a soft tap, not the error sound: he has done nothing wrong.
+    const button = document.getElementById('play');
+    button.classList.remove('shake');
+    void button.offsetWidth; // restart the animation if he taps again
+    button.classList.add('shake');
+    play('tap');
+    const line = document.getElementById('tomorrow');
+    line.textContent = 'Finish all your habits today to play tomorrow!';
+    clearTimeout(lockedNote);
+    lockedNote = setTimeout(() => renderPlay(monsterState(save, today)), 2600);
+    return;
+  }
+  play('confirm');
+  arenaOpen = true;
+  render();
+  arena.open({ species: state.species, form: state.form });
+};
+
+const arena = createArena({
+  getArt: () => art,
+  canStart: gameIsOpen,
+  // Keeps the best and hands it back, so the end screen can say whether this
+  // round beat it.
+  onScore(percent) {
+    save = recordScore(save, save.activeMonster, percent);
+    writeSave(save);
+    return save.monsters.find((m) => m.id === save.activeMonster)?.bestScore ?? percent;
+  },
+  onExit() {
+    arenaOpen = false;
+    render();
+  },
+});
 
 // Opens the inline field. Leaving it empty keeps the species name, which is
 // a fine answer.

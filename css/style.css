@@ -9,8 +9,12 @@
   --warn: #b0562e;
   --pixel: 'Pixelify Sans', ui-monospace, monospace;
   /* Numbers only ever render in this: the pixel font's digits are too easy
-     to misread, and every number here is one a 7-year-old acts on. */
-  --figures: 600 var(--size, 15px)/1.2 system-ui, -apple-system, sans-serif;
+     to misread, and every number here is one a 7-year-old acts on.
+     It is only the family. A size cannot live in here: a custom property
+     containing var() is resolved where it is defined, on :root, so an
+     element setting its own size afterwards changes nothing, and every
+     number came out at the fallback. */
+  --numerals: system-ui, -apple-system, sans-serif;
 }
 
 * { box-sizing: border-box; }
@@ -104,8 +108,7 @@ h3 { font-size: 17px; }
   flex-wrap: wrap;
 }
 .level {
-  --size: 15px;
-  font: var(--figures);
+  font: 600 15px/1.2 var(--numerals);
   font-variant-numeric: tabular-nums;
   color: var(--muted);
 }
@@ -139,8 +142,7 @@ h3 { font-size: 17px; }
   margin-top: 6px;
 }
 .xp-label {
-  --size: 14px;
-  font: var(--figures);
+  font: 600 14px/1.2 var(--numerals);
   font-variant-numeric: tabular-nums;
 }
 
@@ -191,8 +193,7 @@ h3 { font-size: 17px; }
 .stat-list dt { color: var(--muted); font-size: 13px; }
 .stat-list dd {
   margin: 0;
-  --size: 20px;
-  font: var(--figures);
+  font: 600 20px/1.2 var(--numerals);
   font-variant-numeric: tabular-nums;
 }
 
@@ -344,3 +345,115 @@ input, select {
   .pick-frame { max-width: 240px; margin-inline: auto; }
   .stat-list { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* ---- The game ---- */
+
+.play-row { margin-top: 10px; }
+.play { width: 100%; font-size: 17px; padding: 8px 10px; }
+.play.locked {
+  background: #e7dcc6;
+  color: var(--muted);
+  border-color: var(--line);
+}
+.play.shake { animation: shake 380ms ease; }
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .play.shake { animation: none; }
+}
+.tomorrow { margin: 6px 0 0; font-size: 13px; color: var(--muted); text-align: center; }
+.tomorrow.ready { color: var(--accent); font-weight: 600; }
+
+.arena-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  max-width: 460px;
+  margin: 0 auto 8px;
+}
+.arena-score {
+  font: 600 22px/1.2 var(--numerals);
+  font-variant-numeric: tabular-nums;
+}
+.arena-board {
+  position: relative;
+  max-width: 460px;
+  margin: 0 auto;
+}
+#arena-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  image-rendering: pixelated;
+  border: 3px solid var(--ink);
+  border-radius: 4px;
+  background: #f4e7cd;
+  touch-action: none;
+}
+.arena-overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(43, 34, 32, 0.45);
+  border-radius: 4px;
+}
+.card-overlay {
+  background: var(--card);
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  padding: 16px 18px;
+  margin: 12px;
+  max-width: 290px;
+  text-align: center;
+}
+.card-overlay.tap { cursor: pointer; }
+.card-overlay h3 { font-size: 22px; margin-bottom: 8px; }
+.card-overlay p { margin: 6px 0; }
+.big-score {
+  font: 600 46px/1.2 var(--numerals);
+  font-variant-numeric: tabular-nums;
+}
+.muted { color: var(--muted); }
+.overlay-buttons { display: flex; gap: 8px; justify-content: center; margin-top: 12px; }
+.arena-banner {
+  position: absolute;
+  inset: 10px 0 auto;
+  margin: 0;
+  text-align: center;
+  font-family: var(--pixel);
+  font-size: 20px;
+  color: var(--ink);
+  text-shadow: 0 1px 0 #fffaf0, 0 -1px 0 #fffaf0, 1px 0 0 #fffaf0, -1px 0 0 #fffaf0;
+  opacity: 0;
+  transition: opacity 200ms ease;
+  pointer-events: none;
+}
+.arena-banner.shown { opacity: 1; }
+
+/* A cross of four big buttons. Big enough to hit without looking. */
+.pad {
+  display: grid;
+  grid-template-columns: repeat(3, 68px);
+  grid-template-rows: repeat(3, 58px);
+  gap: 6px;
+  justify-content: center;
+  margin-top: 14px;
+}
+.pad button {
+  font-size: 22px;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.pad-up { grid-column: 2; grid-row: 1; }
+.pad-left { grid-column: 1; grid-row: 2; }
+.pad-right { grid-column: 3; grid-row: 2; }
+.pad-down { grid-column: 2; grid-row: 3; }

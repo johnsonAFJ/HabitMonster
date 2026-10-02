@@ -15,7 +15,7 @@
 //
 // Bump CACHE whenever the file list below changes.
 
-const CACHE = 'monster-v7';
+const CACHE = 'monster-v8';
 
 const APP_FILES = [
   './',
@@ -28,6 +28,8 @@ const APP_FILES = [
   './js/storage.js',
   './js/art.js',
   './js/sound.js',
+  './js/game.js',
+  './js/arena.js',
   './assets/room.png',
   './assets/embertail.png',
   './assets/voltectra.png',

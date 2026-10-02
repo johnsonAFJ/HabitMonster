@@ -67,6 +67,13 @@
           <span class="pips" id="health"></span>
         </div>
         <button type="button" class="feed" id="feed" hidden>Feed</button>
+
+        <!-- Hidden for everyone until the game has been play-tested: visit
+             with ?game in the address to see it. -->
+        <div class="play-row" id="play-row" hidden>
+          <button type="button" class="play" id="play">🎮 Play</button>
+          <p class="tomorrow" id="tomorrow" role="status" aria-live="polite"></p>
+        </div>
         <p class="manage-monster">
           <button type="button" class="link" id="rename-monster">Give it a name</button>
           <button type="button" class="link" id="change-starter">Pick a different one</button>
@@ -79,6 +86,25 @@
       </section>
 
       <section class="cards" id="cards" aria-label="Habits"></section>
+    </section>
+
+    <section class="arena" id="arena" hidden aria-label="Territory game">
+      <div class="arena-top">
+        <button type="button" class="ghost small" id="arena-back">&larr; Back</button>
+        <span class="arena-score" id="arena-score">0%</span>
+        <button type="button" class="ghost small" id="arena-pause">Pause</button>
+      </div>
+      <div class="arena-board">
+        <canvas id="arena-canvas" aria-label="The game board"></canvas>
+        <p class="arena-banner" id="arena-banner" role="status" aria-live="polite"></p>
+        <div class="arena-overlay" id="arena-overlay" hidden></div>
+      </div>
+      <div class="pad" aria-label="Steering">
+        <button type="button" class="pad-up" data-dir="0" aria-label="Up">&#9650;</button>
+        <button type="button" class="pad-left" data-dir="3" aria-label="Left">&#9664;</button>
+        <button type="button" class="pad-right" data-dir="1" aria-label="Right">&#9654;</button>
+        <button type="button" class="pad-down" data-dir="2" aria-label="Down">&#9660;</button>
+      </div>
     </section>
 
     <footer class="bottom">
