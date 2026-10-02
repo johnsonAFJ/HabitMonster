@@ -31,8 +31,8 @@ let feedStart = null;    // when the treat started falling
 let naming = false;      // the monster's name is being typed
 let arenaOpen = false;   // the territory game is on screen
 
-// ?game shows the Play button before launch, so it can be play-tested first.
-// ?game=open and ?game=locked force either state, to see what he would see.
+// ?game=open and ?game=locked force the Play button either way, to test what
+// he would see without finishing a day first.
 // Nothing about it is saved, and his Home Screen app always opens at the same
 // address, so he has no way to set it.
 const GAME_FLAG = new URLSearchParams(location.search).get('game');
@@ -42,7 +42,7 @@ const GAME_FLAG = new URLSearchParams(location.search).get('game');
 // fails if it does not. It is the running code's own version rather than the
 // newest cache, because a new version installs in the background while the
 // old one is still on screen.
-const BUILD = 'monster-v11';
+const BUILD = 'monster-v12';
 
 function gameIsOpen() {
   if (GAME_FLAG === 'open') return true;
@@ -658,7 +658,7 @@ document.addEventListener('keydown', unlock, { once: true });
 // today — the thing he can still do something about.
 function renderPlay(state) {
   const row = document.getElementById('play-row');
-  row.hidden = GAME_FLAG === null || !state.hatched;
+  row.hidden = !state.hatched;
   if (row.hidden) return;
 
   const open = gameIsOpen();

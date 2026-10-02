@@ -349,9 +349,9 @@ done nothing wrong. The line under it is about **tomorrow**, which is the
 thing he can still change: *"2 of 3 done. One more and tomorrow is free
 play."*
 
-**Before launch the button is hidden** unless the address has `?game` in it,
-so it can be play-tested first. `?game=open` and `?game=locked` force either
-state. Nothing about the flag is saved, and the Home Screen app always opens
+The button was hidden behind `?game` while Alex play-tested, and launched on
+2026-10-02. `?game=open` and `?game=locked` still force either state for
+testing. Nothing about the flag is saved, and the Home Screen app always opens
 at the same address, so he cannot set it.
 
 ### The rules
