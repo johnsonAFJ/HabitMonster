@@ -505,7 +505,7 @@ function habitCard(habit, state) {
   const remove = () => {
     if (confirm(`Delete "${habit.name}"? The card goes away, but the experience it earned stays.`)) {
       play('cancel');
-      commit(deleteHabit(save, habit.id));
+      commit(deleteHabit(save, habit.id, today));
     }
   };
 

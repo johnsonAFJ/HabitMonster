@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   LEVEL_BASE, MAX_HEALTH, STARTERS, STAT_PER_LEVEL,
   levelCost, xpForLevel, levelFromXp, formForLevel, grantsItem,
-  addDays, replay, monsterState, statTotals,
+  addDays, replay, monsterState, statTotals, scheduledOn,
   emptySave, chooseStarter, addHabit, logToday, undoToday, deleteHabit, nameMonster, MAX_NAME,
   setStat, currentStreak, hasHatched, validateSave,
   feedMonster, hasFedToday, FEED_XP,
@@ -141,15 +141,69 @@ test('deleting a habit retires it, so the level does not fall', () => {
   const before = monsterState(save, day(10));
   assert.equal(before.xp, 350);
 
-  const after = monsterState(deleteHabit(save, save.habits[0].id), day(10));
+  const after = monsterState(deleteHabit(save, save.habits[0].id, day(10)), day(10));
   assert.equal(after.xp, before.xp, 'retired logs still feed experience');
   assert.equal(after.level, before.level);
-  assert.equal(deleteHabit(save, save.habits[0].id).habits.length, 0, 'the card is gone');
+  assert.equal(deleteHabit(save, save.habits[0].id, day(10)).habits.length, 0, 'the card is gone');
+});
+
+test('a deleted habit stops counting against the days after it', () => {
+  // The bug: with no record of when it was deleted, a deleted habit stayed
+  // scheduled forever, so a perfect day afterwards was scored two of three.
+  let save = logDays(saveWith(3), 3);
+  const before = replay(save, day(3)).xp;
+  save = deleteHabit(save, save.habits[2].id, day(3));
+  for (let d = 4; d <= 6; d++) save.habits.forEach((h) => { save = logToday(save, h.id, day(d)); });
+  const gained = replay(save, day(6)).xp - before;
+  assert.equal(gained, 3 * 35, 'three perfect days with the two habits left, 35 each — not 25');
+});
+
+test('a deleted habit still counts on the day it was deleted', () => {
+  // Otherwise logging two of three and deleting the third would finish the day.
+  let save = saveWith(3);
+  save = deleteHabit(save, save.habits[2].id, day(4));
+  assert.equal(scheduledOn(save, day(4)).length, 3, 'still part of the day it was deleted');
+  assert.equal(scheduledOn(save, day(5)).length, 2, 'gone from the next one');
+});
+
+test('a habit added today counts today', () => {
+  let save = saveWith(1);
+  save = addHabit(save, { name: 'Late', type: 'check' }, day(3), () => 0.9);
+  assert.equal(scheduledOn(save, day(2)).length, 1);
+  assert.equal(scheduledOn(save, day(3)).length, 2);
+});
+
+test('a habit retired before the date was recorded ends at its last log', () => {
+  // Saves from before retiredOn existed. The last log is the earliest it can
+  // have been deleted, so it is also the guess most generous to him.
+  const save = logDays(saveWith(2), 3);
+  const [kept, gone] = save.habits;
+  const old = { ...save, habits: [kept], retired: [{ id: gone.id, name: gone.name, stat: null, createdOn: gone.createdOn, logs: gone.logs }] };
+  assert.equal(scheduledOn(old, day(3)).length, 2, 'scheduled through its last log');
+  assert.equal(scheduledOn(old, day(4)).length, 1, 'and not after');
+
+  const neverLogged = { ...old, retired: [{ ...old.retired[0], logs: {} }] };
+  assert.equal(scheduledOn(neverLogged, day(1)).length, 1, 'never logged, so never scheduled at all');
+});
+
+test('deleting needs the date', () => {
+  const save = saveWith(1);
+  assert.throws(() => deleteHabit(save, save.habits[0].id), /needs today/);
+});
+
+test('a backup keeps when a habit was retired', () => {
+  let save = logDays(saveWith(2), 2);
+  save = deleteHabit(save, save.habits[1].id, day(2));
+  const back = validateSave(JSON.parse(JSON.stringify(save)));
+  assert.equal(back.retired[0].retiredOn, day(2));
+  const bad = JSON.parse(JSON.stringify(save));
+  bad.retired[0].retiredOn = 'yesterday';
+  assert.throws(() => validateSave(bad), /retired habit in the backup is malformed/);
 });
 
 test('a retired habit keeps its stat contribution', () => {
   const save = logDays(saveWith(1, ['wisdom']), 4);
-  const retired = deleteHabit(save, save.habits[0].id);
+  const retired = deleteHabit(save, save.habits[0].id, day(4));
   assert.equal(statTotals(retired).wisdom, 4);
 });
 

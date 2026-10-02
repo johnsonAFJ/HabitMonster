@@ -114,6 +114,18 @@ logs.
   of dropping its logs, so deleting never lowers the level and never rewrites
   a past breadth bonus.
 
+A retired habit records the date it was deleted, `retiredOn`, and stops being
+part of the day's work after it. Before that date was kept, a deleted habit
+stayed scheduled forever, so every perfect day after a deletion was scored as
+two of three and earned 25 XP instead of 35.
+
+It still counts **on** the day it was deleted, so logging two of three and
+deleting the third cannot finish the day. A habit added today counts today,
+for the same reason in reverse. Habits retired before `retiredOn` existed are
+taken to have ended at their last log — the earliest they can have been
+deleted, so the guess most generous to him — and one never logged at all is
+treated as never having been scheduled.
+
 Nothing is stored to enforce any of this. An earlier version floored the level
 at the highest ever reached, which made undo do nothing and, worse, let the XP
 bar measure one level while the label showed another: filling the bar reset it
@@ -405,8 +417,8 @@ Stored under the localStorage key `habit-monster`:
 - `slot` (0, 1 or 2) orders the habit cards.
 - `logs` maps a logged date to `true`, or to the number for number habits.
   XP, level, health and stats are all derived from `logs`. None are stored.
-- `retired` holds deleted habits, keeping `id`, `name`, `stat`, `createdOn`
-  and `logs` so XP replay stays correct.
+- `retired` holds deleted habits, keeping `id`, `name`, `stat`, `createdOn`,
+  `retiredOn` and `logs` so XP replay stays correct.
 - Nothing derived is stored. Saves written by an earlier version carry a
   `levelFloor` on the monster; it is ignored rather than rejected, so an older
   backup still loads.

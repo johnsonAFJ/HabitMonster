@@ -187,6 +187,31 @@ function allHabits(save) {
   return [...save.habits, ...(save.retired ?? [])];
 }
 
+// The last day a retired habit was still part of the day's work, or null if
+// it never was. Deleting records it: the deletion day itself still counts, so
+// logging two of three and deleting the third does not make the day finished.
+// Habits retired before that date was recorded fall back to their last log —
+// the earliest it could have been deleted, and so the most generous guess —
+// and one never logged at all is treated as never having been scheduled.
+function retiredThrough(habit) {
+  if (habit.retiredOn) return habit.retiredOn;
+  const days = Object.keys(habit.logs).sort();
+  return days.length ? days[days.length - 1] : null;
+}
+
+// The habits that were part of a given day: created on or before it, and not
+// yet retired. Without the retired check a deleted habit stayed scheduled
+// forever, so every perfect day after a deletion was scored as a missed one.
+export function scheduledOn(save, day) {
+  const live = save.habits.filter((h) => h.createdOn <= day);
+  const retired = (save.retired ?? []).filter((h) => {
+    if (h.createdOn > day) return false;
+    const until = retiredThrough(h);
+    return until !== null && day <= until;
+  });
+  return [...live, ...retired];
+}
+
 function firstDay(save) {
   const days = allHabits(save).map((h) => h.createdOn).sort();
   return days[0] ?? null;
@@ -202,9 +227,8 @@ export function replay(save, today) {
   let health = MAX_HEALTH;
   if (!start) return { xp, health };
 
-  const habits = allHabits(save);
   for (let day = start; day <= today; day = addDays(day, 1)) {
-    const scheduled = habits.filter((h) => h.createdOn <= day);
+    const scheduled = scheduledOn(save, day);
     if (!scheduled.length) continue;
     const logged = scheduled.filter((h) => day in h.logs);
 
@@ -378,10 +402,18 @@ export function setStat(save, id, stat) {
 
 // Retires rather than deletes. The card disappears, but the logs stay so the
 // level never falls and past breadth bonuses are not rewritten.
-export function deleteHabit(save, id) {
+export function deleteHabit(save, id, today) {
   const habit = save.habits.find((h) => h.id === id);
   if (!habit) return save;
-  const retired = { id: habit.id, name: habit.name, stat: habit.stat, createdOn: habit.createdOn, logs: habit.logs };
+  if (!DATE_KEY.test(today ?? '')) throw new Error('deleteHabit needs today, to record when it was retired.');
+  const retired = {
+    id: habit.id,
+    name: habit.name,
+    stat: habit.stat,
+    createdOn: habit.createdOn,
+    retiredOn: today,
+    logs: habit.logs,
+  };
   return {
     ...save,
     habits: save.habits.filter((h) => h.id !== id),
@@ -455,7 +487,11 @@ export function validateSave(data) {
 
   const retired = Array.isArray(data.retired) ? data.retired : [];
   for (const r of retired) {
-    const ok = typeof r.id === 'string' && DATE_KEY.test(r.createdOn) && validLogs(r.logs);
+    const ok =
+      typeof r.id === 'string' &&
+      DATE_KEY.test(r.createdOn) &&
+      (r.retiredOn === undefined || DATE_KEY.test(r.retiredOn)) &&
+      validLogs(r.logs);
     if (!ok) throw new Error('A retired habit in the backup is malformed.');
   }
 
