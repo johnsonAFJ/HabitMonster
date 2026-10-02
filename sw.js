@@ -15,7 +15,7 @@
 //
 // Bump CACHE whenever the file list below changes.
 
-const CACHE = 'monster-v8';
+const CACHE = 'monster-v9';
 
 const APP_FILES = [
   './',
@@ -67,8 +67,12 @@ self.addEventListener('install', (event) => {
   // Each file is added on its own. cache.addAll rejects the whole install if
   // any single file 404s, which would leave the app with no offline support
   // at all because one optional sound was missing.
+  // `reload` skips the browser's own HTTP cache. GitHub Pages lets files be
+  // kept for ten minutes, so without it a new version could be installed
+  // full of the files it was meant to replace.
   event.waitUntil(caches.open(CACHE).then((cache) =>
-    Promise.all([...APP_FILES, ...EXTRA_FILES].map((file) => cache.add(file).catch(() => null)))));
+    Promise.all([...APP_FILES, ...EXTRA_FILES].map((file) =>
+      cache.add(new Request(file, { cache: 'reload' })).catch(() => null)))));
   self.skipWaiting();
 });
 
@@ -91,7 +95,10 @@ self.addEventListener('fetch', (event) => {
     event.respondWith((async () => {
       const cache = await caches.open(CACHE);
       try {
-        const fresh = await fetch(request);
+        // `no-cache` asks the server whether the file changed, instead of
+        // trusting the browser's ten-minute copy. Without it "network first"
+        // still meant the old version for ten minutes after every push.
+        const fresh = await fetch(request.url, { cache: 'no-cache', credentials: 'same-origin' });
         if (fresh.ok) cache.put(request, fresh.clone());
         return fresh;
       } catch {

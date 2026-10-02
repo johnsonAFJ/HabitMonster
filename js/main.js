@@ -37,6 +37,13 @@ let arenaOpen = false;   // the territory game is on screen
 // address, so he has no way to set it.
 const GAME_FLAG = new URLSearchParams(location.search).get('game');
 
+// The version this code belongs to, shown in the footer so a report from his
+// phone can be matched to a push. It must equal CACHE in sw.js, and a test
+// fails if it does not. It is the running code's own version rather than the
+// newest cache, because a new version installs in the background while the
+// old one is still on screen.
+const BUILD = 'monster-v9';
+
 function gameIsOpen() {
   if (GAME_FLAG === 'open') return true;
   if (GAME_FLAG === 'locked') return false;
@@ -813,6 +820,7 @@ if ('serviceWorker' in navigator && location.hostname !== 'localhost') {
   navigator.serviceWorker.register('./sw.js');
 }
 
+document.getElementById('build').textContent = `Build ${BUILD.replace('monster-', '')}`;
 renderMute();
 render();
 startLoop();

@@ -623,8 +623,17 @@ To install it on an iPhone, open the URL in Safari, tap Share, then
   The **art** is cache-first with a background refresh, since it is big and
   rarely changes. The shell moves as one piece: serving fresh HTML alongside
   cached JS would mean a new page running old code. Bump `CACHE` in `sw.js`
-  whenever its file list changes. The offline script is skipped on
-  `localhost` so local edits show up on reload.
+  whenever its file list changes, along with `BUILD` in `js/main.js` — a
+  test fails if they differ. The offline script is skipped on `localhost`
+  so local edits show up on reload.
+- **Fresh really means fresh.** GitHub Pages lets browsers keep files for
+  ten minutes, and the service worker was fetching *through* that cache, so
+  for ten minutes after every push "network first" still served the old
+  version. It now asks the server whether each app file changed
+  (`cache: 'no-cache'`), and installing a new version skips the browser's
+  copy entirely (`cache: 'reload'`).
+- **The footer shows the build**, so a report from his phone can be matched
+  to a push.
 - **Separate saves.** `localhost:8438`, the site in Safari and the home-screen
   app each keep their own data. Export from one and import in the other to
   move it. On an iPhone, import inside the home-screen app, not in Safari.
