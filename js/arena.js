@@ -28,6 +28,10 @@ const COUNT_MS = 650;
 const SLIDE_PART = 0.33;
 const BANNER_MS = 1600;
 const GUIDE_KEY = 'habit-monster-game-guide-seen';
+// How far a finger has to travel, in screen pixels, before it counts as a
+// direction. Small enough to feel instant, big enough that a wobble while
+// holding still does not steer.
+const DRAG_STEP = 14;
 
 // One colour per creature, matched to its art. Lines are DARKER than land.
 // They started paler, the way Paper.io draws them, but that only works on a
@@ -221,6 +225,7 @@ export function createArena({ getArt, canStart, onScore, onExit }) {
     showOverlay(`
       <div class="card-overlay">
         <h3>How to play</h3>
+        <p><b>Drag your finger the way you want to go</b>, or tap where you want to head.</p>
         <p>Go out from your land, come back, and keep everything inside the loop.</p>
         <p><b>Don't let anyone touch your line</b> — not even you.</p>
         <p>Touch someone else's line and they're out.</p>
@@ -322,6 +327,51 @@ export function createArena({ getArt, canStart, onScore, onExit }) {
   function turn(dir) {
     if (phase === 'playing' || phase === 'countdown') steer(state, dir);
   }
+
+  // Steering by touch, the way Paper.io does it: put a finger anywhere on
+  // the board and move it the way you want to go. Holding on keeps steering,
+  // like a joystick you can put your thumb down anywhere. A tap without
+  // moving heads for the spot tapped instead. The board blocks scrolling
+  // (touch-action: none), so none of this fights the page.
+  let drag = null;
+
+  canvas.addEventListener('pointerdown', (event) => {
+    if (phase !== 'playing' && phase !== 'countdown') return;
+    event.preventDefault();
+    drag = { x: event.clientX, y: event.clientY, startX: event.clientX, startY: event.clientY, moved: false };
+    canvas.setPointerCapture?.(event.pointerId);
+  });
+
+  canvas.addEventListener('pointermove', (event) => {
+    if (!drag) return;
+    const dx = event.clientX - drag.x;
+    const dy = event.clientY - drag.y;
+    if (Math.max(Math.abs(dx), Math.abs(dy)) < DRAG_STEP) return;
+    turn(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? RIGHT : LEFT) : dy > 0 ? DOWN : UP);
+    // Measure from here next time, so the next bend of the finger is a fresh
+    // direction rather than an average of the whole drag.
+    drag.x = event.clientX;
+    drag.y = event.clientY;
+    drag.moved = true;
+  });
+
+  function endDrag(event) {
+    if (!drag) return;
+    const wasTap = !drag.moved &&
+      Math.max(Math.abs(event.clientX - drag.startX), Math.abs(event.clientY - drag.startY)) < DRAG_STEP;
+    drag = null;
+    if (!wasTap || !state) return;
+    // Head for the tapped spot: whichever way it lies furthest from him.
+    const box = canvas.getBoundingClientRect();
+    const scale = box.width / BOARD;
+    const him = state.players[0];
+    const dx = event.clientX - (box.left + (him.x + 0.5) * CELL * scale);
+    const dy = event.clientY - (box.top + (him.y + 0.5) * CELL * scale);
+    if (Math.max(Math.abs(dx), Math.abs(dy)) < CELL * scale) return; // tapped himself
+    turn(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? RIGHT : LEFT) : dy > 0 ? DOWN : UP);
+  }
+  canvas.addEventListener('pointerup', endDrag);
+  canvas.addEventListener('pointercancel', () => { drag = null; });
 
   for (const button of root.querySelectorAll('[data-dir]')) {
     // pointerdown rather than click: click waits to rule out a double-tap,

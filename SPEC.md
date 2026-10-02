@@ -426,9 +426,17 @@ tick. Sliding over the whole tick drew every monster up to a cell behind
 where the rules had it — half a cell on average — so he turned where the
 picture showed room and clipped his own line from where he really was.
 
-Four big arrow buttons under the board, plus the keyboard arrows. They use
-`pointerdown`, since `click` waits to rule out a double tap and is far too
-slow for steering. A quick guide the first time, a 3-2-1 before every round.
+**Steering is by touch, the way Paper.io does it**: put a finger anywhere on
+the board and move it the way you want to go, and keep holding to keep
+steering, like a joystick you can put your thumb down anywhere. A tap without
+moving heads for the spot tapped. The finger has to travel 14 screen pixels
+before it counts, so a wobble while holding still does not steer. The board
+blocks page scrolling, so none of this fights the page — which was the worry
+that had put arrow buttons first.
+
+Four big arrow buttons under the board still work too, as do the keyboard
+arrows. Everything uses `pointerdown`, since `click` waits to rule out a
+double tap and is far too slow for steering. A quick guide the first time, a 3-2-1 before every round.
 Leaving the app pauses it and the clock skips the time away, so coming back
 can never fast-forward him into a rival; there is a pause button too. The
 backup buttons are hidden while he plays, because on a phone they sit right
