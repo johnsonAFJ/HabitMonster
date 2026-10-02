@@ -12,7 +12,7 @@ import {
   COL_NORMAL, COL_HAPPY, COL_WORN, COL_BLINK, COL_WALK_A, COL_WALK_B,
   COL_DANCE_A, COL_DANCE_B,
 } from './art.js';
-import { play, unlock, isMuted, setMuted, setMusic } from './sound.js';
+import { play, unlock, isMuted, setMuted, setMusic, suspendAudio, resumeAudio } from './sound.js';
 
 const ELEMENTS = { embertail: 'Fire', voltectra: 'Electric', bubbletide: 'Water' };
 const BLURBS = {
@@ -696,11 +696,26 @@ function checkDay() {
 }
 setInterval(checkDay, 30000);
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState !== 'visible') return;
+  if (document.visibilityState !== 'visible') {
+    suspendAudio();
+    return;
+  }
   checkDay();
   startLoop();
+  resumeAudio();
 });
-window.addEventListener('pageshow', checkDay);
+
+// Locking the phone or closing the app does not always fire visibilitychange
+// first, so stop the sound on the way out too.
+window.addEventListener('pagehide', suspendAudio);
+window.addEventListener('blur', suspendAudio);
+window.addEventListener('focus', resumeAudio);
+
+window.addEventListener('pageshow', () => {
+  checkDay();
+  startLoop();
+  resumeAudio();
+});
 
 // Offline support for the published site. Skipped on localhost so edits
 // show up on a normal reload while developing.

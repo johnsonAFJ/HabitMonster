@@ -68,7 +68,9 @@ function decode(file) {
 }
 
 export async function play(name) {
-  if (muted || !ctx) return;
+  // Nothing while the context is suspended, or the sounds queue up and all
+  // arrive at once when the app comes back to the front.
+  if (muted || !ctx || ctx.state !== 'running') return;
   const file = EFFECTS[name];
   if (!file) return;
   const buffer = await decode(file);
@@ -126,6 +128,18 @@ export function setMuted(next) {
   }
   if (muted) stopMusic();
   else startMusic();
+}
+
+// Silence while the app is not the screen in front: locking the phone or
+// switching apps should stop the music, without having to mute it by hand.
+// Browsers pause requestAnimationFrame on their own, but audio keeps going.
+export function suspendAudio() {
+  if (ctx && ctx.state === 'running') ctx.suspend().catch(() => {});
+}
+
+export function resumeAudio() {
+  if (!ctx || muted) return;
+  if (ctx.state === 'suspended') ctx.resume().catch(() => {});
 }
 
 // Phones refuse to play audio until the person has interacted with the page,

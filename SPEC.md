@@ -265,6 +265,14 @@ together. The choice is saved per browser under `habit-monster-muted` and is
 not part of a backup. Phones refuse to play audio before the person has
 interacted with the page, so the first tap is what starts it.
 
+**Sound stops when the app is not the screen in front.** Browsers pause
+`requestAnimationFrame` by themselves but keep audio running, so locking the
+phone or switching apps left the music playing until it was muted by hand.
+The audio context is suspended on `visibilitychange`, `pagehide` and `blur`,
+and resumed on the way back unless the sound is muted. Effects are dropped
+while it is suspended rather than queued, or they would all arrive at once
+when the app comes back to the front.
+
 ## Moving about
 
 The monster wanders the room on its own. **Poke it and it dances** for about
