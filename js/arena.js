@@ -20,15 +20,25 @@ const TICK_MS = 1000 / TICKS_PER_SECOND;
 // about two and a half cells: big enough to tell monsters apart at a glance.
 const SPRITE = SHEET_CELL / 2;
 const COUNT_MS = 650;
+// How much of a tick the slide between cells takes. Sliding over the whole
+// tick drew every monster up to a cell behind where the rules had it, and
+// half a cell behind on average, so he turned where the picture showed room
+// and clipped his own line from where he really was. Catching up in the
+// first third keeps the movement smooth and the picture honest.
+const SLIDE_PART = 0.33;
 const BANNER_MS = 1600;
 const GUIDE_KEY = 'habit-monster-game-guide-seen';
 
-// One colour per creature, matched to its art: solid for land, paler for the
-// line it is dragging.
+// One colour per creature, matched to its art. Lines are DARKER than land.
+// They started paler, the way Paper.io draws them, but that only works on a
+// dark board: on this cream one they measured 1.2 to 1.4 : 1 against the
+// floor, so his own tail was close to invisible and getting caught by a
+// rival crossing it looked random. These are 5.1 to 6.2 : 1 against the
+// floor and still clearly different from each monster's own land.
 const COLOURS = {
-  embertail: { land: '#e0793b', line: '#f6bd8f' },
-  voltectra: { land: '#d6a53a', line: '#f1d791' },
-  bubbletide: { land: '#4ea888', line: '#a7dcc6' },
+  embertail: { land: '#e0793b', line: '#9c3a17' },
+  voltectra: { land: '#d6a53a', line: '#7d5a0c' },
+  bubbletide: { land: '#4ea888', line: '#1c5f49' },
 };
 const FLOOR = '#f4e7cd';
 const GRID = '#ecdcbc';
@@ -101,8 +111,9 @@ export function createArena({ getArt, canStart, onScore, onExit }) {
     // has just come back, or was standing at a wall, simply sits on its cell.
     const from = previous[p.index];
     const sliding = from && from.alive && (from.x !== p.x || from.y !== p.y);
-    const x = sliding ? from.x + (p.x - from.x) * fraction : p.x;
-    const y = sliding ? from.y + (p.y - from.y) * fraction : p.y;
+    const along = Math.min(1, fraction / SLIDE_PART);
+    const x = sliding ? from.x + (p.x - from.x) * along : p.x;
+    const y = sliding ? from.y + (p.y - from.y) * along : p.y;
 
     // Rivals are always hatchlings, so their evolutions are not spoiled before
     // they arrive in the backpack. His monster is whatever form it is now.

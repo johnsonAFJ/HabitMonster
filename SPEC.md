@@ -403,8 +403,19 @@ play-testing.
 `js/arena.js` draws it and handles input. His monster is drawn at half size,
 about two and a half cells, using Embertail's walk frames; the rules tick on
 whole cells and the drawing slides between them every frame. One colour per
-creature: ember orange, copper-yellow and jade, solid for land and paler for
-lines, on a plain floor so the territory is easy to read.
+creature: ember orange, copper-yellow and jade on a plain floor so the
+territory is easy to read.
+
+**Lines are darker than land**, not paler. Paler is how Paper.io draws them,
+but that only works on a dark board: on this cream one the pale lines
+measured 1.2 to 1.4 : 1 against the floor, so his own tail was close to
+invisible and getting caught by a rival crossing it looked random. The dark
+ones are 5.1 to 6.2 : 1.
+
+The slide between cells takes the first third of each tick, not the whole
+tick. Sliding over the whole tick drew every monster up to a cell behind
+where the rules had it — half a cell on average — so he turned where the
+picture showed room and clipped his own line from where he really was.
 
 Four big arrow buttons under the board, plus the keyboard arrows. They use
 `pointerdown`, since `click` waits to rule out a double tap and is far too
