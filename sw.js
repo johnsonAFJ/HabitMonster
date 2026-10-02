@@ -13,9 +13,12 @@
 // Serving fresh HTML from a stale cache of JS would mean a new page running
 // old code, so the shell moves as one piece.
 //
-// Bump CACHE whenever the file list below changes.
+// Bump CACHE on every push that changes anything, along with BUILD in
+// js/main.js (a test checks they match). The footer shows it, and it is only
+// useful for telling which push a phone is running if every push gets one.
+// That costs a fresh download of the app each time, which is fine.
 
-const CACHE = 'monster-v9';
+const CACHE = 'monster-v10';
 
 const APP_FILES = [
   './',
