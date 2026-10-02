@@ -179,6 +179,48 @@ export function eventSchedule() {
   }));
 }
 
+// ---- Free play ----
+//
+// The game opens on any day after a finished one. Two of his habits happen
+// at bedtime, so a rule about today would unlock the game just as he went to
+// sleep: finishing tonight opens tomorrow instead.
+
+// At least one habit was part of the day, and every one of them was logged.
+// Without "at least one", a save with no habits would be finished every day.
+export function isFinishedDay(save, day) {
+  const scheduled = scheduledOn(save, day);
+  return scheduled.length > 0 && scheduled.every((h) => day in h.logs);
+}
+
+export function freePlayOn(save, day) {
+  return isFinishedDay(save, addDays(day, -1));
+}
+
+// How today is going, for the line under the Play button: whether tomorrow
+// will be free play. `retiredUnlogged` counts habits deleted today without
+// being logged, which still count for today and would otherwise make "2 of 3"
+// look wrong with only two cards on screen.
+export function todaysProgress(save, today) {
+  const scheduled = scheduledOn(save, today);
+  const done = scheduled.filter((h) => today in h.logs).length;
+  const live = new Set(save.habits.map((h) => h.id));
+  const retiredUnlogged = scheduled.filter((h) => !live.has(h.id) && !(today in h.logs)).length;
+  return { done, total: scheduled.length, finished: isFinishedDay(save, today), retiredUnlogged };
+}
+
+// The game's one stored record. It lives on the monster, like its name, so
+// each one in the backpack keeps its own. Stored as a share of the board, so
+// it still means something if the board size changes.
+export function recordScore(save, id, percent) {
+  return {
+    ...save,
+    monsters: save.monsters.map((m) => {
+      if (m.id !== id || percent <= (m.bestScore ?? 0)) return m;
+      return { ...m, bestScore: Math.round(percent * 10) / 10 };
+    }),
+  };
+}
+
 // ---- Replaying the history ----
 
 // Live and retired habits both feed experience. Retiring rather than deleting
@@ -467,7 +509,8 @@ export function validateSave(data) {
       STARTERS.includes(m.species) &&
       DATE_KEY.test(m.chosenOn) &&
       (m.name === undefined || (typeof m.name === 'string' && m.name.length <= MAX_NAME)) &&
-      (m.fed === undefined || validLogs(m.fed));
+      (m.fed === undefined || validLogs(m.fed)) &&
+      (m.bestScore === undefined || (typeof m.bestScore === 'number' && m.bestScore >= 0 && m.bestScore <= 100));
     // Saves from before experience became purely derived carry a levelFloor.
     // It is ignored rather than rejected, so an older backup still loads.
     if (!ok) throw new Error('A monster in the backup is malformed.');
