@@ -9,7 +9,7 @@
 import {
   createGame, steer, step, shareOf, SIZE, TICKS_PER_SECOND, UP, RIGHT, DOWN, LEFT,
 } from './game.js';
-import { STARTERS } from './monster.js';
+import { STARTERS, STARTER_LABELS } from './monster.js';
 import { hasFrame, CELL as SHEET_CELL, COL_NORMAL, COL_WALK_A, COL_WALK_B } from './art.js';
 import { play, setMusic } from './sound.js';
 
@@ -72,6 +72,7 @@ export function createArena({ getArt, canStart, onScore, onExit }) {
   let countFrom = 0;
   let bannerUntil = 0;
   let raf = 0;
+  let caught = null; // the event that ended the round, to say why
 
   // ---- Drawing ----
 
@@ -155,6 +156,7 @@ export function createArena({ getArt, canStart, onScore, onExit }) {
   }
 
   function newRound() {
+    caught = null;
     // A fresh seed every round. Writing it down is enough to replay one.
     const seed = (Date.now() ^ Math.floor(Math.random() * 0x7fffffff)) >>> 0;
     state = createGame({ seed, player: { species: player.species }, rivals: rivalsFor(player.species) });
@@ -235,6 +237,18 @@ export function createArena({ getArt, canStart, onScore, onExit }) {
     };
   }
 
+  // Why the round ended, in words. Getting caught with no idea how was the
+  // worst part of losing, and half the time it was a rival taking every
+  // cell he had, which needs no touching at all.
+  function why(event) {
+    const who = event?.by != null ? STARTER_LABELS[state.players[event.by].species] : null;
+    if (event?.cause === 'own-line') return 'You ran into your own line.';
+    if (event?.cause === 'line' && who) return `${who} crossed your line.`;
+    if (event?.cause === 'land' && who) return `${who} took all your land.`;
+    if (event?.cause === 'land') return 'All your land was taken.';
+    return '';
+  }
+
   function finish() {
     phase = 'over';
     const held = Math.round(state.best * 10) / 10;
@@ -242,6 +256,7 @@ export function createArena({ getArt, canStart, onScore, onExit }) {
     showOverlay(`
       <div class="card-overlay">
         <h3>Caught!</h3>
+        <p class="why">${why(caught)}</p>
         <p class="big-score">${Math.round(held)}%</p>
         <p>of the board, at your biggest.</p>
         <p class="muted">${held >= best ? 'Your best ever!' : `Your best: ${Math.round(best)}%`}</p>
@@ -274,7 +289,10 @@ export function createArena({ getArt, canStart, onScore, onExit }) {
         bannerUntil = performance.now() + BANNER_MS;
         play('levelUp');
       }
-      if (e.type === 'out' && e.player === 0) play('cancel');
+      if (e.type === 'out' && e.player === 0) {
+        caught = e;
+        play('cancel');
+      }
     }
     if (state.over) finish();
   }

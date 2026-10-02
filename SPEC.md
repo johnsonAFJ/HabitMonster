@@ -372,6 +372,15 @@ at the same address, so he cannot set it.
 - A rival that is out **loses its land**, which opens up a big piece of the
   board, and comes back a few seconds later on a new square.
 - A monster whose land is taken entirely is out, with nowhere to return to.
+  That needs no touching at all, and on this board it is the most common way
+  to lose: across 500 simulated rounds it was 49% of his knockouts, ahead of a
+  rival crossing his line (39%) and his own line (12%). A rival's loop easily
+  swallows a 3 x 3 starting square.
+- **The end of a round says why**, naming the rival where there is one:
+  "You ran into your own line", "Voltectra crossed your line", "Bubbletide
+  took all your land". Getting caught with no idea how was the worst part of
+  losing. Each knockout carries its cause from the rules; a land knockout is
+  credited to whoever's claim took the last cell.
 - **One life.** The round ends when he is caught, and "play again" starts a
   new one at once. His score is the most of the board he held, and his best
   is saved on his monster, like its name.

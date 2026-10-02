@@ -228,6 +228,52 @@ test('walking head-on along a rival’s line puts you both out', () => {
   assert.equal(events.filter((e) => e.type === 'out').length, 2, 'both on the same tick');
 });
 
+// ---- Saying why ----
+
+test('walking into your own line says so', () => {
+  const state = board([{ x: 2, y: 10 }]);
+  for (let i = 0; i < 4; i++) go(state);
+  go(state, DOWN); go(state);
+  go(state, LEFT); go(state);
+  go(state, UP);
+  const out = go(state).find((e) => e.type === 'out');
+  assert.deepEqual({ by: out.by, cause: out.cause }, { by: null, cause: 'own-line' });
+});
+
+test('a rival crossing his line is named', () => {
+  const state = board([{ x: 2, y: 10 }, { x: 8, y: 2, dir: DOWN }]);
+  for (let i = 0; i < 6; i++) go(state);
+  let out = null;
+  for (let i = 0; i < 12 && !state.over; i++) {
+    shove(state, 1, DOWN);
+    out = go(state).find((e) => e.type === 'out' && e.player === 0) ?? out;
+  }
+  assert.deepEqual({ by: out.by, cause: out.cause }, { by: 1, cause: 'line' });
+});
+
+test('a rival that encloses all his land puts him out, and is named', () => {
+  // The one that needs no touching at all: a rival closes a ring round his
+  // whole square, and every cell he had becomes the rival's.
+  const state = board([{ x: 10, y: 10 }, { x: 2, y: 2 }]);
+  const rival = state.players[1];
+  state.owner[at(8, 8)] = 2; // the rival's land, where the ring closes
+  const ring = [];
+  for (let x = 9; x <= 14; x++) ring.push([x, 8]);
+  for (let y = 9; y <= 14; y++) ring.push([14, y]);
+  for (let x = 13; x >= 8; x--) ring.push([x, 14]);
+  for (let y = 13; y >= 10; y--) ring.push([8, y]);
+  for (const [x, y] of ring) {
+    state.trail[at(x, y)] |= 2;
+    rival.trailCells.push(at(x, y));
+  }
+  Object.assign(rival, { x: 8, y: 9, dir: UP });
+  steer(state, UP, 1); // one step up onto its own land closes the ring
+  const out = go(state).find((e) => e.type === 'out' && e.player === 0);
+  assert.ok(out, 'he is out');
+  assert.deepEqual({ by: out.by, cause: out.cause }, { by: 1, cause: 'land' });
+  assert.equal(state.over, true);
+});
+
 // ---- The edge and turning ----
 
 test('the edge is a wall, not a way out', () => {

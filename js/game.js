@@ -320,7 +320,12 @@ function claim(state, p) {
 
 // Out: its land and its line both vanish, which is the reward for catching
 // it — a big piece of the board opens up at once.
-function knockOut(state, p, events, by) {
+//
+// `cause` says how, so the end of a round can tell him: 'own-line' (walked
+// into his own line), 'line' (someone crossed it), or 'land' (someone took
+// every cell he had, which needs no touching at all and was otherwise the
+// most baffling way to lose).
+function knockOut(state, p, events, by, cause) {
   if (!p.alive) return;
   const id = mark(p);
   for (let c = 0; c < SIZE * SIZE; c++) {
@@ -331,7 +336,7 @@ function knockOut(state, p, events, by) {
   p.trailCells = [];
   p.queue = [];
   p.respawnAt = p.human ? null : state.tick + RESPAWN_TICKS;
-  events.push({ type: 'out', player: p.index, by: by ?? null });
+  events.push({ type: 'out', player: p.index, by: by ?? null, cause });
   if (p.human) state.over = true;
 }
 
@@ -365,7 +370,10 @@ export function step(state) {
       if (lines & bit(owner) && !out.has(owner)) out.set(owner, m.p.index);
     }
   }
-  for (const [p, by] of out) knockOut(state, p, events, by === p.index ? null : by);
+  for (const [p, by] of out) {
+    const own = by === p.index;
+    knockOut(state, p, events, own ? null : by, own ? 'own-line' : 'line');
+  }
 
   for (const m of moves) {
     const p = m.p;
@@ -383,12 +391,18 @@ export function step(state) {
     if (state.owner[m.to] === id && p.trailCells.length) {
       claim(state, p);
       events.push({ type: 'claim', player: p.index });
+      // Anyone whose last cell that claim took is out, and it was this
+      // player who did it.
+      for (const q of state.players) {
+        if (q !== p && q.alive && landOf(state, q.index) === 0) knockOut(state, q, events, p.index, 'land');
+      }
     }
   }
 
   // A monster whose land was taken entirely has nowhere to come back to.
+  // Claims catch this as they happen; this catches anything left over.
   for (const p of state.players) {
-    if (p.alive && landOf(state, p.index) === 0) knockOut(state, p, events, null);
+    if (p.alive && landOf(state, p.index) === 0) knockOut(state, p, events, null, 'land');
   }
 
   for (const p of state.players) {

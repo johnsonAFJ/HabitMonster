@@ -457,3 +457,4 @@ input, select {
 .pad-left { grid-column: 1; grid-row: 2; }
 .pad-right { grid-column: 3; grid-row: 2; }
 .pad-down { grid-column: 2; grid-row: 3; }
+.card-overlay .why { font-weight: 600; margin: 0 0 6px; }
