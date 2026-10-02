@@ -211,13 +211,33 @@ export function todaysProgress(save, today) {
 // The game's one stored record. It lives on the monster, like its name, so
 // each one in the backpack keeps its own. Stored as a share of the board, so
 // it still means something if the board size changes.
-export function recordScore(save, id, percent) {
+//
+// Three records: the best ever, the best today (since 100% made the best ever
+// stop moving), and the fastest win in seconds of play. A round that was not
+// won passes no seconds.
+export function recordRound(save, id, { percent, day, seconds = null }) {
+  const held = Math.round(percent * 10) / 10;
+  const time = seconds === null ? null : Math.round(seconds * 10) / 10;
   return {
     ...save,
     monsters: save.monsters.map((m) => {
-      if (m.id !== id || percent <= (m.bestScore ?? 0)) return m;
-      return { ...m, bestScore: Math.round(percent * 10) / 10 };
+      if (m.id !== id) return m;
+      const next = { ...m };
+      if (held > (m.bestScore ?? 0)) next.bestScore = held;
+      if (m.bestToday?.day !== day || held > m.bestToday.percent) next.bestToday = { day, percent: held };
+      if (time !== null && !(m.fastestWin <= time)) next.fastestWin = time;
+      return next;
     }),
+  };
+}
+
+// The records as the end of a round shows them. Today's best is null on a day
+// with no rounds yet, and the fastest win is null until he has won.
+export function gameRecords(monster, day) {
+  return {
+    best: monster?.bestScore ?? 0,
+    today: monster?.bestToday?.day === day ? monster.bestToday.percent : null,
+    fastestWin: monster?.fastestWin ?? null,
   };
 }
 
@@ -485,6 +505,7 @@ export function currentStreak(habit, today) {
 // ---- Backup validation ----
 
 const DATE_KEY = /^\d{4}-\d{2}-\d{2}$/;
+const isShare = (n) => typeof n === 'number' && n >= 0 && n <= 100;
 
 function validLogs(logs) {
   return logs && typeof logs === 'object' && Object.keys(logs).every((k) => DATE_KEY.test(k));
@@ -510,7 +531,9 @@ export function validateSave(data) {
       DATE_KEY.test(m.chosenOn) &&
       (m.name === undefined || (typeof m.name === 'string' && m.name.length <= MAX_NAME)) &&
       (m.fed === undefined || validLogs(m.fed)) &&
-      (m.bestScore === undefined || (typeof m.bestScore === 'number' && m.bestScore >= 0 && m.bestScore <= 100));
+      (m.bestScore === undefined || isShare(m.bestScore)) &&
+      (m.bestToday === undefined || (DATE_KEY.test(m.bestToday?.day) && isShare(m.bestToday.percent))) &&
+      (m.fastestWin === undefined || (typeof m.fastestWin === 'number' && m.fastestWin > 0));
     // Saves from before experience became purely derived carry a levelFloor.
     // It is ignored rather than rejected, so an older backup still loads.
     if (!ok) throw new Error('A monster in the backup is malformed.');

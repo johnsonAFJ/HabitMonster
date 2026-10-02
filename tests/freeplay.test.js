@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   addDays, emptySave, chooseStarter, addHabit, logToday, undoToday, deleteHabit,
-  isFinishedDay, freePlayOn, todaysProgress, recordScore, validateSave,
+  isFinishedDay, freePlayOn, todaysProgress, recordRound, gameRecords, validateSave,
 } from '../js/monster.js';
 
 const DAY1 = '2026-01-01';
@@ -105,22 +105,60 @@ test('progress explains a habit deleted today', () => {
   assert.equal(progress.retiredUnlogged, 1);
 });
 
+const MON = '2026-10-05';
+const TUE = '2026-10-06';
+const records = (save, day) => gameRecords(save.monsters[0], day);
+
 test('the best score only ever goes up', () => {
   let save = saveWith(1);
   const id = save.monsters[0].id;
-  save = recordScore(save, id, 31.27);
+  save = recordRound(save, id, { percent: 31.27, day: MON });
   assert.equal(save.monsters[0].bestScore, 31.3, 'kept to one decimal');
-  save = recordScore(save, id, 12);
+  save = recordRound(save, id, { percent: 12, day: MON });
   assert.equal(save.monsters[0].bestScore, 31.3, 'a worse round does not replace it');
-  save = recordScore(save, id, 44);
+  save = recordRound(save, id, { percent: 44, day: MON });
   assert.equal(save.monsters[0].bestScore, 44);
 });
 
-test('a backup keeps the best score, and rejects a bad one', () => {
+test('today\'s best starts again each day', () => {
+  let save = saveWith(1);
+  const id = save.monsters[0].id;
+  assert.equal(records(save, MON).today, null, 'no rounds yet');
+  save = recordRound(save, id, { percent: 80, day: MON });
+  save = recordRound(save, id, { percent: 40, day: MON });
+  assert.equal(records(save, MON).today, 80, 'a worse round today does not replace it');
+  assert.equal(records(save, TUE).today, null, 'a new day has no best yet');
+  save = recordRound(save, id, { percent: 30, day: TUE });
+  assert.deepEqual(records(save, TUE), { best: 80, today: 30, fastestWin: null });
+});
+
+test('the fastest win only gets faster, and only wins count', () => {
+  let save = saveWith(1);
+  const id = save.monsters[0].id;
+  save = recordRound(save, id, { percent: 60, day: MON });
+  assert.equal(records(save, MON).fastestWin, null, 'losing sets no time');
+  save = recordRound(save, id, { percent: 100, day: MON, seconds: 102.34 });
+  assert.equal(records(save, MON).fastestWin, 102.3, 'kept to one decimal');
+  save = recordRound(save, id, { percent: 100, day: TUE, seconds: 150 });
+  assert.equal(records(save, TUE).fastestWin, 102.3, 'a slower win does not replace it');
+  save = recordRound(save, id, { percent: 100, day: TUE, seconds: 88 });
+  assert.equal(records(save, TUE).fastestWin, 88);
+});
+
+test('a backup keeps the records, and rejects bad ones', () => {
   const base = saveWith(1);
-  const scored = recordScore(base, base.monsters[0].id, 50);
-  assert.equal(validateSave(JSON.parse(JSON.stringify(scored))).monsters[0].bestScore, 50);
-  const bad = JSON.parse(JSON.stringify(scored));
-  bad.monsters[0].bestScore = 140;
-  assert.throws(() => validateSave(bad), /monster in the backup is malformed/);
+  const scored = recordRound(base, base.monsters[0].id, { percent: 100, day: MON, seconds: 90 });
+  const back = validateSave(JSON.parse(JSON.stringify(scored))).monsters[0];
+  assert.deepEqual([back.bestScore, back.bestToday, back.fastestWin], [100, { day: MON, percent: 100 }, 90]);
+  for (const spoil of [
+    (m) => { m.bestScore = 140; },
+    (m) => { m.bestToday = { day: 'Monday', percent: 50 }; },
+    (m) => { m.bestToday = { day: MON, percent: -1 }; },
+    (m) => { m.fastestWin = 0; },
+    (m) => { m.fastestWin = '90'; },
+  ]) {
+    const bad = JSON.parse(JSON.stringify(scored));
+    spoil(bad.monsters[0]);
+    assert.throws(() => validateSave(bad), /monster in the backup is malformed/);
+  }
 });

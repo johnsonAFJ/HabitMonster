@@ -4,7 +4,7 @@ import {
   dateKey, parseKey, monsterState, latestValue, currentStreak, furnitureAt,
   emptySave, chooseStarter, addHabit, logToday, undoToday, renameHabit,
   deleteHabit, setStat, freeSlots, nameMonster, feedMonster, hasFedToday,
-  freePlayOn, todaysProgress, recordScore,
+  freePlayOn, todaysProgress, recordRound, gameRecords,
 } from './monster.js';
 import { createArena } from './arena.js';
 import { readSave, writeSave, saveBackup, readBackup } from './storage.js';
@@ -42,7 +42,7 @@ const GAME_FLAG = new URLSearchParams(location.search).get('game');
 // fails if it does not. It is the running code's own version rather than the
 // newest cache, because a new version installs in the background while the
 // old one is still on screen.
-const BUILD = 'monster-v12';
+const BUILD = 'monster-v13';
 
 function gameIsOpen() {
   if (GAME_FLAG === 'open') return true;
@@ -707,12 +707,12 @@ document.getElementById('play').onclick = () => {
 const arena = createArena({
   getArt: () => art,
   canStart: gameIsOpen,
-  // Keeps the best and hands it back, so the end screen can say whether this
-  // round beat it.
-  onScore(percent) {
-    save = recordScore(save, save.activeMonster, percent);
+  // Keeps the records and hands them back, so the end screen can say whether
+  // this round beat them.
+  onScore(round) {
+    save = recordRound(save, save.activeMonster, { ...round, day: today });
     writeSave(save);
-    return save.monsters.find((m) => m.id === save.activeMonster)?.bestScore ?? percent;
+    return gameRecords(save.monsters.find((m) => m.id === save.activeMonster), today);
   },
   onExit() {
     arenaOpen = false;

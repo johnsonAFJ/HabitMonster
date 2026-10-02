@@ -44,6 +44,12 @@ const COLOURS = {
   voltectra: { land: '#d6a53a', line: '#7d5a0c' },
   bubbletide: { land: '#4ea888', line: '#1c5f49' },
 };
+// Seconds as a game clock: 1:42, or 0:48.
+const clock = (seconds) => {
+  const whole = Math.round(seconds);
+  return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, '0')}`;
+};
+
 const FLOOR = '#f4e7cd';
 const GRID = '#ecdcbc';
 
@@ -255,10 +261,21 @@ export function createArena({ getArt, canStart, onScore, onExit }) {
     return '';
   }
 
+  // The all-time line: his fastest win once he has one, since a best of 100%
+  // stops meaning much; until then, his best share of the board.
+  function recordLine(records, seconds) {
+    if (records.fastestWin === null) return `<p class="muted">Your best ever: ${Math.round(records.best)}%</p>`;
+    if (seconds !== null && seconds <= records.fastestWin) return '<p class="muted"><b>Your fastest win ever!</b></p>';
+    return `<p class="muted">Fastest win: ${clock(records.fastestWin)}</p>`;
+  }
+
   function finish() {
     phase = 'over';
     const held = Math.round(state.best * 10) / 10;
-    const best = onScore(held);
+    // Seconds of play: the clock only ticks while he is playing, so pauses
+    // and the countdown do not count against him.
+    const seconds = won ? Math.round((state.tick / TICKS_PER_SECOND) * 10) / 10 : null;
+    const records = onScore({ percent: held, seconds });
     const title = won ? 'You won!' : 'Caught!';
     const reason = won
       ? won.reason === 'board'
@@ -271,7 +288,9 @@ export function createArena({ getArt, canStart, onScore, onExit }) {
         <p class="why">${reason}</p>
         <p class="big-score">${Math.round(held)}%</p>
         <p>of the board, at your biggest.</p>
-        <p class="muted">${held >= best ? 'Your best ever!' : `Your best: ${Math.round(best)}%`}</p>
+        ${seconds === null ? '' : `<p class="win-time">in ${clock(seconds)}</p>`}
+        <p class="muted">${held >= records.today ? 'Best today!' : `Today's best: ${Math.round(records.today)}%`}</p>
+        ${recordLine(records, seconds)}
         <div class="overlay-buttons">
           <button type="button" id="again">Play again</button>
           <button type="button" class="ghost" id="leave">Back</button>
