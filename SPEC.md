@@ -384,6 +384,15 @@ at the same address, so he cannot set it.
 - **One life.** The round ends when he is caught, and "play again" starts a
   new one at once. His score is the most of the board he held, and his best
   is saved on his monster, like its name.
+- **He wins** by taking every cell, or when both rivals are out with nowhere
+  left to come back to. The first version had no win at all: a round only
+  ended by getting caught, so taking the whole board left him walking round
+  it forever, since the rivals had no land and no room to return. The second
+  condition stops a board that is nearly all his from stalling with nobody
+  left to play against. A win gets the final-evolution fanfare.
+- Whether there is room is decided by a full search of the board, which a
+  respawn also falls back on, so the win check and a respawn can never
+  disagree about it. The random search alone could miss the last free spot.
 - Cheers at 25%, 50% and 75% of the board.
 
 Lines are stored as a **bitmask**, one bit per monster, because two monsters

@@ -67,26 +67,42 @@ export function shareOf(state, index) {
   return (landOf(state, index) / (SIZE * SIZE)) * 100;
 }
 
-// A free HOME x HOME square, away from everyone, for a start or a respawn.
-// Returns its top-left corner, or null if the board has no room left.
-function findHome(state) {
-  const fits = (x, y, margin) => {
-    for (let yy = y; yy < y + HOME; yy++) {
-      for (let xx = x; xx < x + HOME; xx++) {
-        const c = cellOf(xx, yy);
-        if (state.owner[c] || state.trail[c]) return false;
-      }
+// Can a HOME x HOME square go with its top-left corner here? Every cell has
+// to be empty, and its middle at least `margin` steps from anyone alive.
+function fits(state, x, y, margin) {
+  for (let yy = y; yy < y + HOME; yy++) {
+    for (let xx = x; xx < x + HOME; xx++) {
+      const c = cellOf(xx, yy);
+      if (state.owner[c] || state.trail[c]) return false;
     }
-    return state.players.every((p) => !p.alive || Math.abs(p.x - (x + 1)) + Math.abs(p.y - (y + 1)) > margin);
-  };
+  }
+  return state.players.every((p) => !p.alive || Math.abs(p.x - (x + 1)) + Math.abs(p.y - (y + 1)) > margin);
+}
+
+// The first square that fits anywhere, searched in order. This is the final
+// word on whether there is room, so the win check and a respawn can never
+// disagree about it.
+function firstFree(state) {
+  for (let y = 1; y <= SIZE - HOME - 1; y++) {
+    for (let x = 1; x <= SIZE - HOME - 1; x++) {
+      if (fits(state, x, y, 0)) return { x, y };
+    }
+  }
+  return null;
+}
+
+// A free square, away from everyone, for a start or a respawn. Random tries
+// first, preferring room to breathe, so starts vary from round to round;
+// then the full search, so a crowded board still finds a spot if one exists.
+function findHome(state) {
   for (const margin of [6, 3, 0]) {
     for (let tries = 0; tries < 200; tries++) {
       const x = between(state.rand, 1, SIZE - HOME - 1);
       const y = between(state.rand, 1, SIZE - HOME - 1);
-      if (fits(x, y, margin)) return { x, y };
+      if (fits(state, x, y, margin)) return { x, y };
     }
   }
-  return null;
+  return firstFree(state);
 }
 
 function placeAt(state, player, corner) {
@@ -130,6 +146,7 @@ export function createGame({ seed, player, rivals = [] }) {
     players: [],
     tick: 0,
     over: false,
+    won: false,
     best: 0,
     reached: new Set(),
   };
@@ -424,6 +441,18 @@ export function step(state) {
         state.reached.add(m);
         events.push({ type: 'milestone', percent: m });
       }
+    }
+
+    // A win. Without this a round only ended by getting caught, so taking the
+    // whole board left him walking round it forever: the rivals had no land,
+    // so they were out, and no room, so they could never come back. Either
+    // of those is the end — the second stops a board that is nearly all his
+    // from stalling with nobody left to play against.
+    const rivalsGone = state.players.every((p) => p.human || !p.alive);
+    if (share >= 100 || (rivalsGone && !firstFree(state))) {
+      state.over = true;
+      state.won = true;
+      events.push({ type: 'win', reason: share >= 100 ? 'board' : 'nowhere' });
     }
   }
   return events;

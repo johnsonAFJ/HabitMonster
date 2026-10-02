@@ -77,6 +77,7 @@ export function createArena({ getArt, canStart, onScore, onExit }) {
   let bannerUntil = 0;
   let raf = 0;
   let caught = null; // the event that ended the round, to say why
+  let won = null; // set when the round ended in a win
 
   // ---- Drawing ----
 
@@ -161,6 +162,7 @@ export function createArena({ getArt, canStart, onScore, onExit }) {
 
   function newRound() {
     caught = null;
+    won = null;
     // A fresh seed every round. Writing it down is enough to replay one.
     const seed = (Date.now() ^ Math.floor(Math.random() * 0x7fffffff)) >>> 0;
     state = createGame({ seed, player: { species: player.species }, rivals: rivalsFor(player.species) });
@@ -258,10 +260,16 @@ export function createArena({ getArt, canStart, onScore, onExit }) {
     phase = 'over';
     const held = Math.round(state.best * 10) / 10;
     const best = onScore(held);
+    const title = won ? 'You won!' : 'Caught!';
+    const reason = won
+      ? won.reason === 'board'
+        ? 'You took the whole board!'
+        : 'Nobody has anywhere left to come back. The board is yours!'
+      : why(caught);
     showOverlay(`
-      <div class="card-overlay">
-        <h3>Caught!</h3>
-        <p class="why">${why(caught)}</p>
+      <div class="card-overlay${won ? ' win' : ''}">
+        <h3>${title}</h3>
+        <p class="why">${reason}</p>
         <p class="big-score">${Math.round(held)}%</p>
         <p>of the board, at your biggest.</p>
         <p class="muted">${held >= best ? 'Your best ever!' : `Your best: ${Math.round(best)}%`}</p>
@@ -297,6 +305,11 @@ export function createArena({ getArt, canStart, onScore, onExit }) {
       if (e.type === 'out' && e.player === 0) {
         caught = e;
         play('cancel');
+      }
+      if (e.type === 'win') {
+        won = e;
+        // The biggest fanfare there is, the one from the final evolution.
+        play('evolve2');
       }
     }
     if (state.over) finish();

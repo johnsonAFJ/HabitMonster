@@ -333,6 +333,64 @@ test('losing every bit of your land puts you out', () => {
   assert.ok(events.some((e) => e.type === 'out' && e.player === 1));
 });
 
+// ---- Winning ----
+
+test('taking the whole board wins', () => {
+  // The bug: a round only ended by getting caught, so a full board just sat
+  // there with him walking round it forever.
+  const state = board([{ x: 2, y: 2 }, { x: 12, y: 12 }, { x: 18, y: 4 }]);
+  state.owner.fill(1);
+  const events = go(state);
+  const win = events.find((e) => e.type === 'win');
+  assert.ok(win, 'it is a win');
+  assert.equal(win.reason, 'board');
+  assert.equal(state.over, true);
+  assert.equal(state.won, true);
+  assert.equal(Math.round(state.best), 100);
+});
+
+test('both rivals out with nowhere to come back is a win', () => {
+  // Nearly all his, with only scattered single cells left: no room for a
+  // rival's 3 x 3 square, so nobody can ever come back to play.
+  const state = board([{ x: 2, y: 2 }, { x: 12, y: 12 }, { x: 18, y: 4 }]);
+  for (let y = 0; y < SIZE; y++) {
+    for (let x = 0; x < SIZE; x++) state.owner[at(x, y)] = x % 3 === 1 && y % 3 === 1 ? 0 : 1;
+  }
+  state.owner[at(3, 3)] = 1; // where he is standing
+  for (const p of state.players.slice(1)) Object.assign(p, { alive: false, respawnAt: 999 });
+  const win = go(state).find((e) => e.type === 'win');
+  assert.ok(win, 'it is a win');
+  assert.equal(win.reason, 'nowhere');
+  assert.ok(state.best < 100, 'without owning every cell');
+});
+
+test('both rivals out with room to come back is not a win', () => {
+  const state = board([{ x: 2, y: 2 }, { x: 12, y: 12 }, { x: 18, y: 4 }]);
+  for (const p of state.players.slice(1)) {
+    for (let c = 0; c < SIZE * SIZE; c++) if (state.owner[c] === p.index + 1) state.owner[c] = 0;
+    Object.assign(p, { alive: false, respawnAt: state.tick + 2 });
+  }
+  assert.equal(go(state).some((e) => e.type === 'win'), false, 'plenty of room: they will be back');
+  let back = 0;
+  for (let i = 0; i < 4; i++) back += go(state, [RIGHT, DOWN, LEFT, UP][i]).filter((e) => e.type === 'back').length;
+  assert.equal(back, 2, 'and they were');
+  assert.equal(state.over, false);
+});
+
+test('the room check finds a square the random search could miss', () => {
+  // A crowded board with exactly one free 3 x 3 square left. The win check
+  // and a respawn have to agree on it, or a rival could be declared gone
+  // while a spot still existed.
+  const state = board([{ x: 2, y: 2 }, { x: 12, y: 12 }]);
+  state.owner.fill(1);
+  for (let y = 16; y < 19; y++) for (let x = 16; x < 19; x++) state.owner[at(x, y)] = 0;
+  const rival = state.players[1];
+  Object.assign(rival, { alive: false, respawnAt: state.tick + 1 });
+  const events = go(state);
+  assert.equal(events.some((e) => e.type === 'win'), false);
+  assert.ok(go(state).some((e) => e.type === 'back') || rival.alive, 'it found the one square left');
+});
+
 // ---- Rivals actually play ----
 
 test('rivals claim land on their own over a round', () => {
