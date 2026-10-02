@@ -42,7 +42,7 @@ const GAME_FLAG = new URLSearchParams(location.search).get('game');
 // fails if it does not. It is the running code's own version rather than the
 // newest cache, because a new version installs in the background while the
 // old one is still on screen.
-const BUILD = 'monster-v10';
+const BUILD = 'monster-v11';
 
 function gameIsOpen() {
   if (GAME_FLAG === 'open') return true;

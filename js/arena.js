@@ -229,7 +229,7 @@ export function createArena({ getArt, canStart, onScore, onExit }) {
         <h3>How to play</h3>
         <p><b>Drag your finger the way you want to go</b>, or tap where you want to head.</p>
         <p>Go out from your land, come back, and keep everything inside the loop.</p>
-        <p><b>Don't let anyone touch your line</b> — not even you.</p>
+        <p><b>Don't let anyone touch your line.</b> You can cross it yourself.</p>
         <p>Touch someone else's line and they're out.</p>
         <button type="button" id="guide-ok">Got it</button>
       </div>`);
@@ -249,7 +249,6 @@ export function createArena({ getArt, canStart, onScore, onExit }) {
   // cell he had, which needs no touching at all.
   function why(event) {
     const who = event?.by != null ? STARTER_LABELS[state.players[event.by].species] : null;
-    if (event?.cause === 'own-line') return 'You ran into your own line.';
     if (event?.cause === 'line' && who) return `${who} crossed your line.`;
     if (event?.cause === 'land' && who) return `${who} took all your land.`;
     if (event?.cause === 'land') return 'All your land was taken.';

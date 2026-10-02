@@ -191,9 +191,8 @@ export function steer(state, dir, index = 0) {
   p.queue.push(dir);
 }
 
-// Turning straight back is ignored only while dragging a line, because the
-// cell just behind is part of it and reversing would mean walking into your
-// own line. On his own land there is no line, so reversing is harmless.
+// Turning straight back is ignored only while dragging a line: it would
+// just walk back along the line. On his own land it is harmless.
 function canFace(player, dir) {
   return !(player.trailCells.length && dir === opposite(player.dir));
 }
@@ -338,8 +337,8 @@ function claim(state, p) {
 // Out: its land and its line both vanish, which is the reward for catching
 // it — a big piece of the board opens up at once.
 //
-// `cause` says how, so the end of a round can tell him: 'own-line' (walked
-// into his own line), 'line' (someone crossed it), or 'land' (someone took
+// `cause` says how, so the end of a round can tell him: 'line' (someone
+// crossed it), or 'land' (someone took
 // every cell he had, which needs no touching at all and was otherwise the
 // most baffling way to lose).
 function knockOut(state, p, events, by, cause) {
@@ -384,13 +383,13 @@ export function step(state) {
     const lines = state.trail[m.to];
     if (!lines) continue;
     for (const owner of state.players) {
+      // Your own line never puts you out. He asked to be able to cross it,
+      // and a loop inside the loop is still claimed when he gets home.
+      if (owner === m.p) continue;
       if (lines & bit(owner) && !out.has(owner)) out.set(owner, m.p.index);
     }
   }
-  for (const [p, by] of out) {
-    const own = by === p.index;
-    knockOut(state, p, events, own ? null : by, own ? 'own-line' : 'line');
-  }
+  for (const [p, by] of out) knockOut(state, p, events, by, 'line');
 
   for (const m of moves) {
     const p = m.p;
@@ -399,7 +398,7 @@ export function step(state) {
     // The cell being left joins the line if it is not this player's land.
     // The cell being stood on never does, which is why monsters can walk
     // through each other.
-    if (state.owner[m.from] !== id) {
+    if (state.owner[m.from] !== id && !(state.trail[m.from] & bit(p))) {
       state.trail[m.from] |= bit(p);
       p.trailCells.push(m.from);
     }

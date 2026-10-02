@@ -361,23 +361,28 @@ at the same address, so he cannot set it.
 
 - Leave your land and you draw a line behind you. Get back to your land and
   everything inside the loop is yours, **other monsters' land included**.
-- **Touch anyone's line and they are out** — including your own.
+- **Touch anyone else's line and they are out.** Your own line is safe to
+  cross: his son asked for it after play-testing, and getting caught by
+  himself felt unfair rather than tricky. A loop drawn across his own line is
+  still claimed when he gets home, since claiming fills whatever the edge
+  cannot reach. Rivals still steer around their own lines.
 - **Monsters walk straight through each other.** Only lines matter. A line is
   the cells a monster has left behind, never the one it stands on, which is
   what makes that work. Walking head-on along a rival's line still puts you
   both out: you step onto the line behind it, and it onto yours.
 - The **edge is a wall**: walk into it and you just stand there. Turning
-  straight back is ignored while dragging a line, since it would mean walking
-  into your own; on your own land it is harmless and allowed.
+  straight back is ignored while dragging a line, so a mis-swipe does not
+  walk him back along it; on your own land it is allowed.
 - A rival that is out **loses its land**, which opens up a big piece of the
   board, and comes back a few seconds later on a new square.
 - A monster whose land is taken entirely is out, with nowhere to return to.
   That needs no touching at all, and on this board it is the most common way
   to lose: across 500 simulated rounds it was 49% of his knockouts, ahead of a
-  rival crossing his line (39%) and his own line (12%). A rival's loop easily
+  rival crossing his line (39%) and his own line (12%, before crossing your
+  own line became safe). A rival's loop easily
   swallows a 3 x 3 starting square.
 - **The end of a round says why**, naming the rival where there is one:
-  "You ran into your own line", "Voltectra crossed your line", "Bubbletide
+  "Voltectra crossed your line", "Bubbletide
   took all your land". Getting caught with no idea how was the worst part of
   losing. Each knockout carries its cause from the rules; a land knockout is
   credited to whoever's claim took the last cell.

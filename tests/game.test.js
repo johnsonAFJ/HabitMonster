@@ -127,15 +127,19 @@ test('a claim takes other monsters’ land that it walls in', () => {
 
 // ---- Getting caught ----
 
-test('walking into your own line puts you out', () => {
+test('walking over your own line is fine', () => {
   const state = board([{ x: 2, y: 10 }]);
   for (let i = 0; i < 4; i++) go(state);
   go(state, DOWN); go(state);
   go(state, LEFT); go(state);
   go(state, UP); // up to (5, 12): still clear of the line
-  const events = go(state); // and into (5, 11), which is his line
-  assert.ok(events.some((e) => e.type === 'out' && e.player === 0));
-  assert.equal(state.over, true, 'he is out, so the round is over');
+  const events = go(state); // and onto (5, 11), which is his line
+  go(state); // and off the other side
+  assert.ok(!events.some((e) => e.type === 'out'));
+  assert.equal(state.players[0].alive, true);
+  assert.equal(state.over, false);
+  const p = state.players[0];
+  assert.equal(new Set(p.trailCells).size, p.trailCells.length, 'each line cell is listed once');
 });
 
 test('a rival crossing his line puts him out', () => {
@@ -230,14 +234,18 @@ test('walking head-on along a rival’s line puts you both out', () => {
 
 // ---- Saying why ----
 
-test('walking into your own line says so', () => {
+test('a loop drawn across his own line is his once he gets home', () => {
   const state = board([{ x: 2, y: 10 }]);
-  for (let i = 0; i < 4; i++) go(state);
-  go(state, DOWN); go(state);
-  go(state, LEFT); go(state);
-  go(state, UP);
-  const out = go(state).find((e) => e.type === 'out');
-  assert.deepEqual({ by: out.by, cause: out.cause }, { by: null, cause: 'own-line' });
+  for (let i = 0; i < 6; i++) go(state); // out along row 11 to (8, 11)
+  go(state, DOWN); go(state); go(state); // down to (8, 14)
+  go(state, LEFT); go(state); go(state); // left to (5, 14)
+  go(state, UP); go(state); go(state); go(state); // up across his line to (5, 10)
+  assert.equal(state.players[0].alive, true);
+  go(state, LEFT); go(state); // back home at (3, 10)
+  // (7, 12) to (8, 13) sit inside the loop, touched by no line at all.
+  for (const [x, y] of [[7, 12], [8, 12], [7, 13], [8, 13]]) {
+    assert.equal(state.owner[at(x, y)], 1, `(${x}, ${y}) is inside the loop and his`);
+  }
 });
 
 test('a rival crossing his line is named', () => {
