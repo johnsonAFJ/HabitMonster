@@ -121,6 +121,16 @@
       <p class="art-note" id="art-note"></p>
     </footer>
   </main>
+
+  <div class="greeting" id="greeting" hidden role="dialog" aria-modal="true" aria-labelledby="greeting-title">
+    <div class="greeting-card">
+      <img class="greeting-art" id="greeting-art" alt="" width="256" height="160" hidden>
+      <p class="greeting-stand-in" id="greeting-stand-in" aria-hidden="true"></p>
+      <h2 id="greeting-title"></h2>
+      <p id="greeting-message"></p>
+      <button type="button" id="greeting-ok"></button>
+    </div>
+  </div>
   <script type="module" src="js/main.js"></script>
 </body>
 </html>

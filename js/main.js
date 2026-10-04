@@ -7,6 +7,7 @@ import {
   freePlayOn, todaysProgress, recordRound, gameRecords,
 } from './monster.js';
 import { createArena } from './arena.js';
+import { showGreeting } from './greeting.js';
 import { readSave, writeSave, saveBackup, readBackup } from './storage.js';
 import {
   loadArt, drawMonsterAt, drawEgg, drawCell, drawCheer, drawFurniture, drawFeed,
@@ -42,7 +43,7 @@ const GAME_FLAG = new URLSearchParams(location.search).get('game');
 // fails if it does not. It is the running code's own version rather than the
 // newest cache, because a new version installs in the background while the
 // old one is still on screen.
-const BUILD = 'monster-v13';
+const BUILD = 'monster-v14';
 
 function gameIsOpen() {
   if (GAME_FLAG === 'open') return true;
@@ -823,6 +824,11 @@ if ('serviceWorker' in navigator && location.hostname !== 'localhost') {
 document.getElementById('build').textContent = `Build ${BUILD.replace('monster-', '')}`;
 renderMute();
 render();
+{
+  const state = monsterState(save, today);
+  const name = state.name ?? (state.species ? STARTER_LABELS[state.species] : 'Your monster');
+  showGreeting({ today, name, onClear: () => play('confirm') });
+}
 startLoop();
 loadArt().then((loaded) => {
   art = loaded;

@@ -18,7 +18,7 @@
 // useful for telling which push a phone is running if every push gets one.
 // That costs a fresh download of the app each time, which is fine.
 
-const CACHE = 'monster-v13';
+const CACHE = 'monster-v14';
 
 const APP_FILES = [
   './',
@@ -33,6 +33,7 @@ const APP_FILES = [
   './js/sound.js',
   './js/game.js',
   './js/arena.js',
+  './js/greeting.js',
   './assets/room.png',
   './assets/embertail.png',
   './assets/voltectra.png',

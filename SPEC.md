@@ -507,6 +507,17 @@ Bubbletide · Adolescent
 The form sits with the species rather than beside the level, so it is not
 written twice.
 
+### Welcome cards
+
+`js/greeting.js` holds one optional card, shown over everything the first
+time the app opens while it is current. Tapping its button clears it for good
+on that device, and it stops on its own after its `until` date. The site is
+public, so the words stay general; the monster's name is the only personal
+touch. Its art is 256 x 160 at `assets/greetings/`, and until that file exists
+the card shows emoji instead. A new card needs a new `id`, or a device that
+cleared the last one would never see it. The first was "Have a great trip!",
+for a theme-park trip in October 2026 (`prompts/trip-greeting.md`).
+
 ## Habits
 
 - At most 3. Each is yes/no or a number with an optional unit label.
@@ -685,6 +696,7 @@ color:
 | `js/storage.js` | localStorage save and load, JSON export and import |
 | `js/art.js` | Loads the sheets and room, draws the monster, the egg and the cheer sparkles |
 | `js/sound.js` | Sound effects, optional music, and the mute setting |
+| `js/greeting.js` | The one-off welcome card, and when it shows. |
 | `js/game.js` | The territory game's rules and rivals. No DOM, so Node can test it. |
 | `js/arena.js` | The territory game on screen: drawing, controls, pausing, the end of a round |
 | `js/main.js` | Page wiring: the picker, the room, the status strip, habit cards, midnight rollover |
