@@ -1,7 +1,7 @@
 import {
   MAX_HABITS, STARTERS, STARTER_LABELS, STATS, STAT_LABELS, MAX_HEALTH,
   FORM_LABELS, FORM_LEVELS,
-  dateKey, parseKey, monsterState, latestValue, currentStreak, furnitureAt,
+  dateKey, parseKey, addDays, isAwayDay, monsterState, latestValue, currentStreak, furnitureAt,
   emptySave, chooseStarter, addHabit, logToday, undoToday, renameHabit,
   deleteHabit, setStat, freeSlots, nameMonster, feedMonster, hasFedToday,
   freePlayOn, todaysProgress, recordRound, gameRecords,
@@ -43,7 +43,7 @@ const GAME_FLAG = new URLSearchParams(location.search).get('game');
 // fails if it does not. It is the running code's own version rather than the
 // newest cache, because a new version installs in the background while the
 // old one is still on screen.
-const BUILD = 'monster-v15';
+const BUILD = 'monster-v16';
 
 function gameIsOpen() {
   if (GAME_FLAG === 'open') return true;
@@ -673,6 +673,10 @@ function renderPlay(state) {
   line.classList.toggle('ready', finished);
   if (!total) {
     line.textContent = 'Add a habit to start earning free play.';
+  } else if (isAwayDay(today) && !done) {
+    line.textContent = 'On your trip, one habit opens the game today!';
+  } else if (isAwayDay(today) && isAwayDay(addDays(today, 1))) {
+    line.textContent = "Game's open today \u2713 One habit a day while you're away.";
   } else if (finished) {
     line.textContent = 'All done! Free play tomorrow \u2713';
   } else {
@@ -694,7 +698,9 @@ document.getElementById('play').onclick = () => {
     button.classList.add('shake');
     play('tap');
     const line = document.getElementById('tomorrow');
-    line.textContent = 'Finish all your habits today to play tomorrow!';
+    line.textContent = isAwayDay(today)
+      ? 'Do one habit today to play!'
+      : 'Finish all your habits today to play tomorrow!';
     clearTimeout(lockedNote);
     lockedNote = setTimeout(() => renderPlay(monsterState(save, today)), 2600);
     return;

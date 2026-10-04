@@ -507,6 +507,17 @@ Bubbletide · Adolescent
 The form sits with the species rather than beside the level, so it is not
 written twice.
 
+### Days away
+
+`AWAY` in `js/monster.js` lists stretches when he is travelling. On a day
+away, nothing logged is **skipped rather than missed**: no streak breaks and
+no health is lost. Anything logged counts as normal. And logging **any one
+habit opens the game that same day**, instead of finishing all of them the
+day before. Because streaks and health are derived from the logs, adding a
+stretch after the fact mends what it covers the next time the app opens.
+The first was 2026-10-03 to 2026-10-08, a theme-park trip, added on the 4th
+so the 3rd's misses would not cost him his streaks.
+
 ### Welcome cards
 
 `js/greeting.js` holds one optional card, shown over everything the first

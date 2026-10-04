@@ -179,6 +179,23 @@ export function eventSchedule() {
   }));
 }
 
+// ---- Days away ----
+//
+// Stretches when he is travelling. A day away with nothing logged is skipped
+// rather than missed: it breaks no streak and costs no health. A day away
+// with something logged counts as normal. And while away, logging any one
+// habit opens the game that same day.
+//
+// Everything is derived from the logs, so adding a stretch after the fact
+// mends the streaks it covers the next time the app opens.
+export const AWAY = [
+  { from: '2026-10-03', to: '2026-10-08' }, // theme-park trip
+];
+
+export function isAwayDay(day, away = AWAY) {
+  return away.some((stretch) => stretch.from <= day && day <= stretch.to);
+}
+
 // ---- Free play ----
 //
 // The game opens on any day after a finished one. Two of his habits happen
@@ -192,8 +209,9 @@ export function isFinishedDay(save, day) {
   return scheduled.length > 0 && scheduled.every((h) => day in h.logs);
 }
 
-export function freePlayOn(save, day) {
-  return isFinishedDay(save, addDays(day, -1));
+export function freePlayOn(save, day, away = AWAY) {
+  if (isFinishedDay(save, addDays(day, -1))) return true;
+  return isAwayDay(day, away) && scheduledOn(save, day).some((h) => day in h.logs);
 }
 
 // How today is going, for the line under the Play button: whether tomorrow
@@ -283,7 +301,7 @@ function firstDay(save) {
 // experience and settling health. Health only moves on finished days, except
 // that logging something today restores a point right away so the monster
 // perks up the moment it is fed.
-export function replay(save, today) {
+export function replay(save, today, away = AWAY) {
   const start = firstDay(save);
   let xp = 0;
   let health = MAX_HEALTH;
@@ -301,8 +319,9 @@ export function replay(save, today) {
       if (breadth && levelFromXp(xp) >= BREADTH_MIN_LEVEL) gain += BREADTH_BONUS;
       xp += Math.min(gain, MAX_DAY_XP);
       health = Math.min(MAX_HEALTH, health + 1);
-    } else if (day < today) {
-      // An unlogged today costs nothing until the day is over.
+    } else if (day < today && !isAwayDay(day, away)) {
+      // An unlogged today costs nothing until the day is over, and nor does
+      // a day away.
       health = Math.max(0, health - 1);
     }
   }
@@ -491,12 +510,14 @@ export function latestValue(habit) {
 }
 
 // Consecutive logged days ending today, or ending yesterday if today is not
-// logged yet, so an unfinished today never looks like a broken streak.
-export function currentStreak(habit, today) {
+// logged yet, so an unfinished today never looks like a broken streak. Days
+// away are stepped over when unlogged: they neither count nor break it.
+export function currentStreak(habit, today, away = AWAY) {
   let day = today in habit.logs ? today : addDays(today, -1);
   let streak = 0;
-  while (day in habit.logs) {
-    streak++;
+  for (;;) {
+    if (day in habit.logs) streak++;
+    else if (!isAwayDay(day, away)) break;
     day = addDays(day, -1);
   }
   return streak;
