@@ -14,9 +14,9 @@ export const GREETING = {
   title: 'Have a great trip!',
   message: (name) => `${name} can't wait to hear all about your adventure.`,
   button: "Let's go!",
-  // 256 x 160, the same size as the room, drawn at 1x and scaled up crisp.
-  // Until the file exists the card shows the emoji instead.
-  image: 'assets/greetings/trip.png',
+  // A painted travel poster, 16:10 (1280 x 800 or so), as a JPG to keep it
+  // light on his phone. Until the file exists the card shows the emoji.
+  image: 'assets/greetings/trip.jpg',
   standIn: '✈️ 🦖 🐉 🧱',
 };
 

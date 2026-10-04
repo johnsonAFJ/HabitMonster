@@ -1,42 +1,49 @@
 # Claude Design prompt — "Have a great trip!" card art
 
-Paste everything below the line into Claude Design, in the same project as the
-monster sheets so it matches their style.
+Paste everything below the line into Claude Design. Attach the vintage
+travel-poster image Alex liked as the style reference.
+
+The first try was pixel art and did not land. This one asks for the painted
+poster look instead.
 
 ---
 
-Please make one pixel-art scene for Habit Monster: a welcome card the app
-shows a kid when he opens it while away on a trip to a theme park.
+Please paint one illustration in the style of the attached reference: a
+**vintage travel poster**. Rich, painterly, warm. A glowing sunset sky that
+fades from gold to pink to purple, hills layered into the distance in soft
+purples, tall palm trees framing the sides, and a decorative border down the
+left and right edges made of **film reels and clapperboards**.
 
-**File:** `trip.png`
-**Size:** exactly **256 x 160 pixels**, the same as `room.png`
-**Scale:** 1x. One pixel of art is one pixel in the file. Draw at this size; do
-not upscale a smaller drawing. The app scales it up with crisp pixels.
-**Background:** solid, not transparent. It is a complete little scene.
-**Style:** match the existing sheets and room: the same palette family,
-outline treatment and top-left lighting. 32 colours or fewer.
+It is the welcome card in a kids' app, shown to a 7-year-old who is away on a
+trip to a movie theme park. It should feel exciting and magical: "you're
+somewhere amazing."
 
-**The scene:** a bright, happy day at a made-up adventure theme park, seen
-from a little way off. Somewhere in it:
+**Size:** 16:10 landscape, **1280 x 800 pixels**.
+**Format:** JPG.
 
-- a small **plane** flying across the sky, maybe trailing a little cloud
-- a **friendly dinosaur**, like a long-necked one peeking over a jungle fence
-  or a small T-rex in a safari-park setting
-- a **friendly dragon** flying, or perched on a castle tower
-- a tower or a little castle built from **toy building bricks**: chunky,
-  colourful, with round studs on top
-- park touches: a **roller coaster** loop, flags, a big sun, palm trees
+**In the scene:**
 
-Leave the **bottom quarter calm**, like grass or a path, so nothing important
-sits where the card's edge meets the text below it.
+- **An airplane** flying across the sunset sky in the upper part of the
+  picture, small and graceful, with a thin vapour trail. This is the most
+  important element: he flew there.
+- **A friendly dinosaur**: a big long-necked dinosaur peeking over a jungle
+  gate with tall wooden doors and torches, in the middle distance.
+- **A friendly dragon** gliding over the hills, wings spread. Make it
+  original: **not black**, no big round green cartoon eyes. A teal or copper
+  dragon is good.
+- **A fairytale castle** on a hilltop, with pointed towers and flags. It must
+  be original, not any famous castle.
+- **A theme-park main street** in the foreground: a grand arched entrance
+  gate, little old-fashioned cars, tiny people walking in, warm street lamps.
+- Optional: a roller coaster loop on a far hillside.
 
-**Keep it all original.** The app is on a public website. No logos, no park
-names, no lettering of any kind, and nothing that copies a character, ride or
-building from a real park, film or toy brand. Generic dinosaurs, dragons and
-toy bricks are good; recognisable ones are not.
+**Leave the top fifth calm**, just sky and the plane, with **no lettering at
+all**: no titles, no banners, no signs, no words on the gate. The app puts its
+own words below the picture.
 
-**Optional:** if it fits, tuck **Embertail** (from his sheet, the hatchling
-form) into a corner, waving or riding along. If it crowds the scene, leave it
-out.
+**Keep everything original.** The picture goes on a public website. No logos,
+no real park or studio names, no hillside letters, no globe, no giant gorilla,
+and nothing that copies a real castle, gate, film character or ride. Generic
+dinosaurs, dragons and castles are good; recognisable ones are not.
 
-When you're done, export `trip.png` at 256 x 160.
+Export as `trip.jpg` at 1280 x 800.

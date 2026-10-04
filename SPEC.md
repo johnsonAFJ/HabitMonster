@@ -513,8 +513,9 @@ written twice.
 time the app opens while it is current. Tapping its button clears it for good
 on that device, and it stops on its own after its `until` date. The site is
 public, so the words stay general; the monster's name is the only personal
-touch. Its art is 256 x 160 at `assets/greetings/`, and until that file exists
-the card shows emoji instead. A new card needs a new `id`, or a device that
+touch. Its art is a 16:10 JPG at `assets/greetings/` (painted, not pixel art:
+Alex preferred a vintage travel-poster look for this one), and until that file
+exists the card shows emoji instead. A new card needs a new `id`, or a device that
 cleared the last one would never see it. The first was "Have a great trip!",
 for a theme-park trip in October 2026 (`prompts/trip-greeting.md`).
 
